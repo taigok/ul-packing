@@ -5,6 +5,7 @@ export interface Gear {
   weight: number; // グラム
   description?: string;
   createdAt: Date;
+  order?: number; // 表示順序
 }
 
 export type GearCategory =

@@ -27,6 +27,15 @@ export const deleteGear = (id: string): void => {
   localStorage.setItem(GEARS_KEY, JSON.stringify(gears));
 };
 
+export const saveGearOrder = (gears: Gear[]): void => {
+  localStorage.setItem(GEARS_KEY, JSON.stringify(gears));
+};
+
+export const deleteManyGears = (ids: string[]): void => {
+  const gears = getGears().filter((g) => !ids.includes(g.id));
+  localStorage.setItem(GEARS_KEY, JSON.stringify(gears));
+};
+
 // Packing list storage
 export const getPackingLists = (): PackingList[] => {
   if (typeof window === 'undefined') return [];
