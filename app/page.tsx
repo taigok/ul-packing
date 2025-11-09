@@ -184,42 +184,51 @@ export default function Page() {
                   {label} ({categoryGears.length}個 / {categoryWeight}g)
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {categoryGears.map((gear) => (
-                    <div
-                      key={gear.id}
-                      className="flex items-center justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-slate-900">{gear.name}</div>
-                        {gear.description && (
-                          <div className="text-sm text-slate-600">{gear.description}</div>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-sm font-medium text-slate-700">
-                          {gear.weight}g
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEdit(gear)}
-                          >
-                            編集
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleDelete(gear.id)}
-                          >
-                            削除
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 border-b">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase">名前</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-slate-700 uppercase">説明</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-slate-700 uppercase">重量</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-slate-700 uppercase">操作</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {categoryGears.map((gear) => (
+                        <tr key={gear.id} className="hover:bg-slate-50">
+                          <td className="px-6 py-3 text-sm font-medium text-slate-900">
+                            {gear.name}
+                          </td>
+                          <td className="px-6 py-3 text-sm text-slate-600">
+                            {gear.description || '-'}
+                          </td>
+                          <td className="px-6 py-3 text-sm text-slate-700 text-right">
+                            {gear.weight}g
+                          </td>
+                          <td className="px-6 py-3 text-right">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(gear)}
+                              >
+                                編集
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDelete(gear.id)}
+                              >
+                                削除
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
