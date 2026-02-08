@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}{{ packing_list.title }}{% endblock %}
+{% block content %}
+<a href="/" class="back-link">一覧へ戻る</a>
+<header class="page-head">
+  <h1>{{ packing_list.title }}</h1>
+  <p>{{ packing_list.description }}</p>
+</header>
+
+<div class="card panel">
+  <form method="post" action="/lists/{{ packing_list.id }}/unit" class="inline">
+    <label for="unit">単位</label>
+    <select id="unit" name="unit">
+      <option value="g" {% if packing_list.unit.value == 'g' %}selected{% endif %}>g</option>
+      <option value="oz" {% if packing_list.unit.value == 'oz' %}selected{% endif %}>oz</option>
+    </select>
+    <button type="submit">切替</button>
+  </form>
+</div>
+
+<div class="card panel">
+  <p class="muted">共有URL</p>
+  <div class="url-block">
+    <code id="share-url" class="code-block">{{ request.url_for('shared_view', share_token=packing_list.share_token) }}</code>
+    <button
+      type="button"
+      class="btn-copy"
+      data-copy-target="share-url"
+      data-copy-label-default="URLをコピー"
+      data-copy-label-success="コピー済み"
+      data-copy-label-error="コピー失敗"
+    >URLをコピー</button>
+  </div>
+  <a href="/s/{{ packing_list.share_token }}">共有リンクを開く</a>
+  <form method="post" action="/lists/{{ packing_list.id }}/share/regenerate" class="stack-sm">
+    <button type="submit" class="btn-warning">再生成（旧URL無効化）</button>
+  </form>
+</div>
+
+{% include "partials/item_form.html" %}
+{% include "partials/items_section.html" %}
+{% endblock %}

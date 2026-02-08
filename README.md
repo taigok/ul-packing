@@ -1,35 +1,92 @@
 # UL Packing
 
-ウルトラライト（UL）ハイキング用のギア管理・パッキングリストアプリ
+FastAPI + Jinja2 + htmx + SQLite で作った、UL向けパッキングリスト管理アプリです。
 
-## 開発環境のセットアップ
+## 主な機能
 
-```bash
-pnpm install
-pnpm dev
-```
-
-ブラウザで [http://localhost:3000](http://localhost:3000) を開く
-
-## サンプルデータの追加
-
-開発時の動作確認用に、ブラウザコンソール（F12 → Console）で以下を実行：
-
-```javascript
-localStorage.setItem('ul-packing-gears', JSON.stringify([{"id":"sample-tent-1","name":"サンプル テント A","category":"tent","weight":800,"description":"1人用軽量テント","createdAt":"2024-01-15T00:00:00.000Z"},{"id":"sample-tent-2","name":"サンプル タープ B","category":"tent","weight":300,"description":"ULタープシェルター","createdAt":"2024-01-16T00:00:00.000Z"},{"id":"sample-sleeping-1","name":"サンプル 寝袋 A","category":"sleeping","weight":600,"description":"3シーズン用ダウン寝袋","createdAt":"2024-01-17T00:00:00.000Z"},{"id":"sample-sleeping-2","name":"サンプル スリーピングマット B","category":"sleeping","weight":350,"description":"エアマット","createdAt":"2024-01-18T00:00:00.000Z"},{"id":"sample-backpack-1","name":"サンプル バックパック A","category":"backpack","weight":450,"description":"30L ULバックパック","createdAt":"2024-01-19T00:00:00.000Z"},{"id":"sample-clothing-1","name":"サンプル レインジャケット A","category":"clothing","weight":200,"description":"防水透湿ジャケット","createdAt":"2024-01-20T00:00:00.000Z"},{"id":"sample-clothing-2","name":"サンプル ダウンジャケット B","category":"clothing","weight":250,"description":"保温着","createdAt":"2024-01-21T00:00:00.000Z"},{"id":"sample-cooking-1","name":"サンプル クッカー A","category":"cooking","weight":150,"description":"チタン製クッカー","createdAt":"2024-01-22T00:00:00.000Z"},{"id":"sample-cooking-2","name":"サンプル バーナー B","category":"cooking","weight":80,"description":"ガスバーナー","createdAt":"2024-01-23T00:00:00.000Z"},{"id":"sample-food-1","name":"サンプル 行動食 A","category":"food","weight":500,"description":"ナッツ・ドライフルーツ","createdAt":"2024-01-24T00:00:00.000Z"},{"id":"sample-water-1","name":"サンプル ウォーターボトル A","category":"water","weight":50,"description":"500ml ソフトボトル","createdAt":"2024-01-25T00:00:00.000Z"},{"id":"sample-electronics-1","name":"サンプル ヘッドランプ A","category":"electronics","weight":60,"description":"LED ヘッドランプ","createdAt":"2024-01-26T00:00:00.000Z"},{"id":"sample-electronics-2","name":"サンプル モバイルバッテリー B","category":"electronics","weight":120,"description":"10000mAh バッテリー","createdAt":"2024-01-27T00:00:00.000Z"},{"id":"sample-other-1","name":"サンプル ファーストエイドキット","category":"other","weight":100,"description":"救急セット","createdAt":"2024-01-28T00:00:00.000Z"},{"id":"sample-other-2","name":"サンプル マップケース","category":"other","weight":30,"description":"防水マップケース","createdAt":"2024-01-29T00:00:00.000Z"}]));
-location.reload();
-```
-
-クリア：
-```javascript
-localStorage.removeItem('ul-packing-gears');
-location.reload();
-```
+- パッキングリストの作成
+- 装備アイテムの追加/更新/削除
+- 重量サマリーの自動計算（ベース重量/消耗品/着用/合計）
+- g / oz の表示切り替え
+- 共有リンクの閲覧とトークン再生成（旧URL無効化）
+- 共有URLのコピー
 
 ## 技術スタック
 
-- Next.js 14
-- React 18
-- TypeScript
-- Tailwind CSS
-- localStorage (データ永続化)
+- Python 3.13
+- FastAPI
+- SQLAlchemy
+- Jinja2
+- htmx
+- SQLite
+- pytest
+- Playwright
+
+## 前提
+
+- Python 3.13 (`.python-version`)
+- `uv`
+- Node.js（E2E実行時）
+
+## セットアップ
+
+```bash
+uv sync --all-groups
+npm ci
+```
+
+Playwright を初回セットアップする場合:
+
+```bash
+npx playwright install --with-deps chromium
+```
+
+## 起動
+
+```bash
+uv run uvicorn ul_packing.main:app --reload
+```
+
+ブラウザで [http://127.0.0.1:8000](http://127.0.0.1:8000) を開いてください。
+
+`DATABASE_URL` を指定するとDBを切り替えられます。
+
+```bash
+DATABASE_URL=sqlite+pysqlite:///./data/app.db uv run uvicorn ul_packing.main:app --reload
+```
+
+## テスト
+
+ユニット/統合テスト:
+
+```bash
+uv run pytest
+```
+
+E2E:
+
+```bash
+npx playwright test
+```
+
+## DBマイグレーション
+
+```bash
+uv run alembic upgrade head
+```
+
+## 主要ルート
+
+- `GET /` リスト一覧
+- `POST /lists` リスト作成
+- `GET /lists/{list_id}` リスト詳細
+- `POST /lists/{list_id}/items` アイテム追加
+- `POST /lists/{list_id}/items/{item_id}` アイテム更新
+- `POST /lists/{list_id}/items/{item_id}/delete` アイテム削除
+- `POST /lists/{list_id}/unit` 単位切替
+- `GET /s/{share_token}` 共有ビュー
+- `POST /lists/{list_id}/share/regenerate` 共有トークン再生成
+
+## Dev Container
+
+`.devcontainer/devcontainer.json` を用意しています。VS Code / Codex で `Reopen in Container` を実行すると、依存関係とPlaywright環境を自動セットアップできます。
