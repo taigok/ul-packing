@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
 import { ItemFormFields, type ItemFormValue } from '@/components/item-form-fields'
@@ -64,9 +64,9 @@ export function ListsPage() {
   const hasLists = Boolean(listQuery.data && listQuery.data.length > 0)
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
+    <div className="grid gap-4">
+      <Card className="gap-4 py-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 px-4">
           <CardTitle>マイギア</CardTitle>
           <Dialog open={isAddGearOpen} onOpenChange={setIsAddGearOpen}>
             {hasGearItems ? (
@@ -91,13 +91,13 @@ export function ListsPage() {
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           {gearItemsQuery.isLoading ? <p>読み込み中...</p> : null}
           {gearItemsQuery.isError ? (
             <p className="text-destructive">ギア一覧の読み込みに失敗しました。</p>
           ) : null}
           {gearItemsQuery.data?.length === 0 ? (
-            <div className="grid justify-items-center gap-4 py-8 text-center">
+            <div className="grid justify-items-center gap-3 py-6 text-center">
               <p className="text-sm text-muted-foreground">
                 まだギアがありません。最初のギアを追加しましょう。
               </p>
@@ -107,7 +107,7 @@ export function ListsPage() {
             </div>
           ) : null}
           {gearItemsQuery.data && gearItemsQuery.data.length > 0 ? (
-            <Table>
+            <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
               <TableHeader>
                 <TableRow>
                   <TableHead>名前</TableHead>
@@ -115,8 +115,6 @@ export function ListsPage() {
                   <TableHead>種別</TableHead>
                   <TableHead>重量</TableHead>
                   <TableHead>個数</TableHead>
-                  <TableHead>リスト</TableHead>
-                  <TableHead className="w-[140px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -129,12 +127,6 @@ export function ListsPage() {
                     <TableCell>{kindLabel(item.kind)}</TableCell>
                     <TableCell>{item.weight_grams * item.quantity} g</TableCell>
                     <TableCell>{item.quantity}</TableCell>
-                    <TableCell>{item.list_title}</TableCell>
-                    <TableCell>
-                      <Button asChild variant="outline" size="sm">
-                        <Link to={`/lists/${item.list_id}`}>リストを開く</Link>
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -143,8 +135,8 @@ export function ListsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
+      <Card className="gap-4 py-4">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 px-4">
           <CardTitle>パッキングリスト</CardTitle>
           <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
             {hasLists ? (
@@ -168,11 +160,11 @@ export function ListsPage() {
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           {listQuery.isLoading ? <p>読み込み中...</p> : null}
           {listQuery.isError ? <p className="text-destructive">リストの読み込みに失敗しました。</p> : null}
           {listQuery.data?.length === 0 ? (
-            <div className="grid justify-items-center gap-4 py-8 text-center">
+            <div className="grid justify-items-center gap-3 py-6 text-center">
               <p className="text-sm text-muted-foreground">
                 まだパッキングリストがありません。最初のリストを作成しましょう。
               </p>
@@ -182,12 +174,11 @@ export function ListsPage() {
             </div>
           ) : null}
           {listQuery.data && listQuery.data.length > 0 ? (
-            <Table>
+            <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
               <TableHeader>
                 <TableRow>
                   <TableHead>タイトル</TableHead>
                   <TableHead>説明</TableHead>
-                  <TableHead className="w-[160px]">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -195,11 +186,6 @@ export function ListsPage() {
                   <TableRow key={list.id}>
                     <TableCell className="font-medium">{list.title}</TableCell>
                     <TableCell>{list.description || '-'}</TableCell>
-                    <TableCell>
-                      <Button asChild variant="outline" size="sm">
-                        <Link to={`/lists/${list.id}`}>開く</Link>
-                      </Button>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
