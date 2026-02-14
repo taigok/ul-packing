@@ -48,6 +48,14 @@ const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   return payload.data
 }
 
+const requestWithBody = <T>(path: string, method: 'POST' | 'PATCH', body: object) =>
+  request<T>(path, {
+    method,
+    body: JSON.stringify(body),
+  })
+
+const listPath = (listId: string, suffix = '') => `/api/v1/lists/${listId}${suffix}`
+
 export type ListPayload = {
   title: string
   description: string
@@ -65,22 +73,18 @@ export type ItemPayload = {
 export const api = {
   getLists: () => request<PackingList[]>('/api/v1/lists'),
   getGearItems: () => request<GearListItem[]>('/api/v1/gear-items'),
-  createList: (payload: ListPayload) => request<PackingList>('/api/v1/lists', { method: 'POST', body: JSON.stringify(payload) }),
-  getList: (listId: string) => request<PackingListDetail>(`/api/v1/lists/${listId}`),
-  createItem: (listId: string, payload: ItemPayload) =>
-    request<PackingListDetail>(`/api/v1/lists/${listId}/items`, { method: 'POST', body: JSON.stringify(payload) }),
+  createList: (payload: ListPayload) => requestWithBody<PackingList>('/api/v1/lists', 'POST', payload),
+  getList: (listId: string) => request<PackingListDetail>(listPath(listId)),
+  createItem: (listId: string, payload: ItemPayload) => requestWithBody<PackingListDetail>(listPath(listId, '/items'), 'POST', payload),
   updateItem: (listId: string, itemId: string, payload: ItemPayload) =>
-    request<PackingListDetail>(`/api/v1/lists/${listId}/items/${itemId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(payload),
-    }),
+    requestWithBody<PackingListDetail>(listPath(listId, `/items/${itemId}`), 'PATCH', payload),
   deleteItem: (listId: string, itemId: string) =>
-    request<PackingListDetail>(`/api/v1/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),
+    request<PackingListDetail>(listPath(listId, `/items/${itemId}`), { method: 'DELETE' }),
   setUnit: (listId: string, unit: Unit) =>
-    request<PackingListDetail>(`/api/v1/lists/${listId}/unit`, { method: 'PATCH', body: JSON.stringify({ unit }) }),
+    requestWithBody<PackingListDetail>(listPath(listId, '/unit'), 'PATCH', { unit }),
   getShared: (token: string) => request<SharedPackingList>(`/api/v1/shared/${token}`),
   regenerateShareToken: (listId: string) =>
-    request<PackingListDetail>(`/api/v1/lists/${listId}/share/regenerate`, { method: 'POST' }),
+    request<PackingListDetail>(listPath(listId, '/share/regenerate'), { method: 'POST' }),
 }
 
 export { ApiError }

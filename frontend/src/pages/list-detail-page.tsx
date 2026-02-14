@@ -59,9 +59,13 @@ export function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>()
   const queryClient = useQueryClient()
   const [editingItem, setEditingItem] = useState<GearItem | null>(null)
+  const listQueryKey = ['list', listId] as const
+  const invalidateListQuery = async () => {
+    await queryClient.invalidateQueries({ queryKey: listQueryKey })
+  }
 
   const listQuery = useQuery({
-    queryKey: ['list', listId],
+    queryKey: listQueryKey,
     queryFn: () => api.getList(listId ?? ''),
     enabled: Boolean(listId),
   })
@@ -69,7 +73,7 @@ export function ListDetailPage() {
   const createItemMutation = useMutation({
     mutationFn: (payload: ItemFormValue) => api.createItem(listId ?? '', payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+      await invalidateListQuery()
       toast.success('Item added')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to add item')),
@@ -79,7 +83,7 @@ export function ListDetailPage() {
     mutationFn: ({ itemId, payload }: { itemId: string; payload: ItemFormValue }) =>
       api.updateItem(listId ?? '', itemId, payload),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+      await invalidateListQuery()
       setEditingItem(null)
       toast.success('Item updated')
     },
@@ -89,7 +93,7 @@ export function ListDetailPage() {
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) => api.deleteItem(listId ?? '', itemId),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+      await invalidateListQuery()
       toast.success('Item deleted')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to delete item')),
@@ -98,7 +102,7 @@ export function ListDetailPage() {
   const setUnitMutation = useMutation({
     mutationFn: (unit: Unit) => api.setUnit(listId ?? '', unit),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+      await invalidateListQuery()
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to update unit')),
   })
@@ -106,7 +110,7 @@ export function ListDetailPage() {
   const regenerateShareMutation = useMutation({
     mutationFn: () => api.regenerateShareToken(listId ?? ''),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['list', listId] })
+      await invalidateListQuery()
       toast.success('Share token regenerated')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to regenerate token')),
@@ -121,6 +125,12 @@ export function ListDetailPage() {
   if (listQuery.isError || !listQuery.data) return <p className="text-destructive">List not found.</p>
 
   const list = listQuery.data
+  const summaryCards = [
+    { title: 'Base', weight: list.summary.base_weight_g },
+    { title: 'Consumable', weight: list.summary.consumable_weight_g },
+    { title: 'Worn', weight: list.summary.worn_weight_g },
+    { title: 'Total', weight: list.summary.total_pack_g },
+  ] as const
 
   return (
     <div className="grid gap-6">
@@ -184,30 +194,16 @@ export function ListDetailPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Base</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatWeight(list.summary.base_weight_g, list.unit)}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Consumable</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatWeight(list.summary.consumable_weight_g, list.unit)}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Worn</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatWeight(list.summary.worn_weight_g, list.unit)}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Total</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xl font-semibold">{formatWeight(list.summary.total_pack_g, list.unit)}</CardContent>
-        </Card>
+        {summaryCards.map((card) => (
+          <Card key={card.title}>
+            <CardHeader>
+              <CardTitle className="text-sm">{card.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xl font-semibold">
+              {formatWeight(card.weight, list.unit)}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Card>

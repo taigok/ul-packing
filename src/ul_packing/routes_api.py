@@ -12,6 +12,8 @@ from ul_packing.schemas_api import (
     CreateListIn,
     GearListItemOut,
     GearItemOut,
+    PackingListDetailOut,
+    PackingListListItemOut,
     SetUnitIn,
     SharedPackingListOut,
     SummaryOut,
@@ -50,21 +52,53 @@ def _to_item_out(item: GearItem) -> dict[str, object]:
     return GearItemOut.model_validate(item).model_dump(mode="json")
 
 
+def _to_gear_list_item_out(item: GearItem, list_title: str) -> dict[str, object]:
+    return GearListItemOut(
+        id=item.id,
+        list_id=item.list_id,
+        list_title=list_title,
+        name=item.name,
+        category=item.category,
+        kind=item.kind,
+        weight_grams=item.weight_grams,
+        quantity=item.quantity,
+        notes=item.notes,
+        sort_order=item.sort_order,
+    ).model_dump(mode="json")
+
+
 def _to_list_data(packing_list: PackingList, include_items: bool) -> dict[str, object]:
-    data: dict[str, object] = {
-        "id": packing_list.id,
-        "title": packing_list.title,
-        "description": packing_list.description,
-        "unit": packing_list.unit,
-        "share_token": packing_list.share_token,
-        "is_shared": packing_list.is_shared,
-        "created_at": packing_list.created_at,
-        "updated_at": packing_list.updated_at,
-    }
+    data: dict[str, object] = PackingListListItemOut.model_validate(packing_list).model_dump(mode="json")
     if include_items:
-        data["items"] = [_to_item_out(item) for item in packing_list.items]
-        data["summary"] = _to_summary_out(packing_list).model_dump(mode="json")
+        detail = PackingListDetailOut(
+            **data,
+            items=[GearItemOut.model_validate(item) for item in packing_list.items],
+            summary=_to_summary_out(packing_list),
+        )
+        data = detail.model_dump(mode="json")
     return data
+
+
+def _get_list_item_or_404(db: Session, list_id: str, item_id: str) -> tuple[PackingList, GearItem]:
+    packing_list = _get_list_or_404(db, list_id)
+    item = db.get(GearItem, item_id)
+    if not item or item.list_id != packing_list.id:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return packing_list, item
+
+
+def _apply_item_payload(item: GearItem, payload: CreateItemIn | UpdateItemIn) -> None:
+    item.name = payload.name.strip()
+    item.category = payload.category
+    item.weight_grams = payload.weight_grams
+    item.quantity = payload.quantity
+    item.kind = payload.kind
+    item.notes = payload.notes.strip()
+
+
+def _commit_and_refresh_list(db: Session, packing_list: PackingList) -> None:
+    db.commit()
+    db.refresh(packing_list)
 
 
 @router.get("/lists")
@@ -81,21 +115,7 @@ def get_gear_items(db: Session = Depends(get_db)):
         .order_by(PackingList.created_at.desc(), GearItem.sort_order.asc(), GearItem.id.asc())
     ).all()
 
-    data = [
-        GearListItemOut(
-            id=item.id,
-            list_id=item.list_id,
-            list_title=list_title,
-            name=item.name,
-            category=item.category,
-            kind=item.kind,
-            weight_grams=item.weight_grams,
-            quantity=item.quantity,
-            notes=item.notes,
-            sort_order=item.sort_order,
-        ).model_dump(mode="json")
-        for item, list_title in rows
-    ]
+    data = [_to_gear_list_item_out(item, list_title) for item, list_title in rows]
     return {"data": data}
 
 
@@ -129,50 +149,35 @@ def create_item(list_id: str, payload: CreateItemIn, db: Session = Depends(get_d
     max_order = max([item.sort_order for item in packing_list.items], default=-1)
     item = GearItem(
         list_id=packing_list.id,
-        name=payload.name.strip(),
+        name="",
         category=payload.category,
         weight_grams=payload.weight_grams,
         quantity=payload.quantity,
         kind=payload.kind,
-        notes=payload.notes.strip(),
+        notes="",
         sort_order=max_order + 1,
     )
+    _apply_item_payload(item, payload)
     db.add(item)
-    db.commit()
-    db.refresh(packing_list)
+    _commit_and_refresh_list(db, packing_list)
 
     return {"data": _to_list_data(packing_list, include_items=True)}
 
 
 @router.patch("/lists/{list_id}/items/{item_id}")
 def update_item(list_id: str, item_id: str, payload: UpdateItemIn, db: Session = Depends(get_db)):
-    packing_list = _get_list_or_404(db, list_id)
-    item = db.get(GearItem, item_id)
-    if not item or item.list_id != packing_list.id:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    item.name = payload.name.strip()
-    item.category = payload.category
-    item.weight_grams = payload.weight_grams
-    item.quantity = payload.quantity
-    item.kind = payload.kind
-    item.notes = payload.notes.strip()
-    db.commit()
-    db.refresh(packing_list)
+    packing_list, item = _get_list_item_or_404(db, list_id, item_id)
+    _apply_item_payload(item, payload)
+    _commit_and_refresh_list(db, packing_list)
 
     return {"data": _to_list_data(packing_list, include_items=True)}
 
 
 @router.delete("/lists/{list_id}/items/{item_id}")
 def delete_item(list_id: str, item_id: str, db: Session = Depends(get_db)):
-    packing_list = _get_list_or_404(db, list_id)
-    item = db.get(GearItem, item_id)
-    if not item or item.list_id != packing_list.id:
-        raise HTTPException(status_code=404, detail="Item not found")
-
+    packing_list, item = _get_list_item_or_404(db, list_id, item_id)
     db.delete(item)
-    db.commit()
-    db.refresh(packing_list)
+    _commit_and_refresh_list(db, packing_list)
 
     return {"data": _to_list_data(packing_list, include_items=True)}
 
@@ -181,8 +186,7 @@ def delete_item(list_id: str, item_id: str, db: Session = Depends(get_db)):
 def set_unit(list_id: str, payload: SetUnitIn, db: Session = Depends(get_db)):
     packing_list = _get_list_or_404(db, list_id)
     packing_list.unit = payload.unit
-    db.commit()
-    db.refresh(packing_list)
+    _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=True)}
 
 
@@ -207,6 +211,5 @@ def shared_view(share_token: str, db: Session = Depends(get_db)):
 def regenerate_share_token(list_id: str, db: Session = Depends(get_db)):
     packing_list = _get_list_or_404(db, list_id)
     packing_list.share_token = generate_share_token()
-    db.commit()
-    db.refresh(packing_list)
+    _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=True)}
