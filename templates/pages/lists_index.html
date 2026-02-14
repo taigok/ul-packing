@@ -1,34 +1,38 @@
 {% extends "base.html" %}
 {% block title %}パッキングリスト{% endblock %}
 {% block content %}
-<header class="page-head">
-  <h1>パッキングリスト</h1>
-  <p>UL装備をシンプルに管理して、重量をすばやく見直せます。</p>
-</header>
+<section class="hero card panel">
+  <header class="page-head">
+    <h1>パッキングリスト</h1>
+    <p>UL装備をシンプルに管理して、重量をすばやく見直せます。</p>
+  </header>
+</section>
 
-<form method="post" action="/lists" class="card panel" id="create-list-form">
-  <label for="title">リスト名</label>
-  <input id="title" name="title" required maxlength="100" />
+<section class="index-layout">
+  <form method="post" action="/lists" class="card panel create-list-card" id="create-list-form">
+    <label for="title">リスト名</label>
+    <input id="title" name="title" required maxlength="100" />
 
-  <label for="description">説明</label>
-  <textarea id="description" name="description" rows="2"></textarea>
+    <label for="description">説明</label>
+    <textarea id="description" name="description" rows="2"></textarea>
 
-  <button type="submit">リスト作成</button>
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-</form>
+    <button type="submit">リスト作成</button>
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  </form>
 
-<section class="list-grid">
-  {% for list in lists %}
-    <article class="card list-card">
-      <h2><a href="/lists/{{ list.id }}">{{ list.title }}</a></h2>
-      <p>{{ list.description }}</p>
-    </article>
-  {% else %}
-    <article class="card empty-state">
-      <p>まだリストがありません。</p>
-      <p class="muted">まずは上のフォームからリストを作成してください。</p>
-      <p class="empty-state-action"><a href="#create-list-form" class="back-link">リストを作成する</a></p>
-    </article>
-  {% endfor %}
+  <section class="list-grid">
+    {% for list in lists %}
+      <article class="card list-card">
+        <h2><a href="/lists/{{ list.id }}">{{ list.title }}</a></h2>
+        <p>{{ list.description }}</p>
+      </article>
+    {% else %}
+      <article class="card empty-state">
+        <p>まだリストがありません。</p>
+        <p class="muted">まずは上のフォームからリストを作成してください。</p>
+        <p class="empty-state-action"><a href="#create-list-form" class="back-link">リストを作成する</a></p>
+      </article>
+    {% endfor %}
+  </section>
 </section>
 {% endblock %}
