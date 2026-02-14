@@ -62,6 +62,7 @@ export function ListsPage() {
   })
   const hasGearItems = Boolean(gearItemsQuery.data && gearItemsQuery.data.length > 0)
   const hasLists = Boolean(listQuery.data && listQuery.data.length > 0)
+  const templates = listQuery.data?.filter((list) => list.is_template) ?? []
 
   return (
     <div className="grid gap-6">
@@ -161,6 +162,7 @@ export function ListsPage() {
               </DialogHeader>
               <ListCreateForm
                 isSubmitting={createListMutation.isPending}
+                templates={templates}
                 onSubmit={async (values) => {
                   await createListMutation.mutateAsync(values)
                 }}

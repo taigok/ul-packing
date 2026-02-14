@@ -209,3 +209,46 @@ def test_cors_preflight_for_spa_origin(client) -> None:
     )
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+
+
+def test_create_list_from_template(client, session) -> None:
+    template = PackingList(title="Template", share_token=generate_share_token(), is_template=True)
+    session.add(template)
+    session.commit()
+
+    template_item = GearItem(
+        list_id=template.id,
+        name="Quilt",
+        category="sleeping",
+        weight_grams=480,
+        quantity=1,
+        kind="base",
+        notes="",
+        sort_order=0,
+    )
+    session.add(template_item)
+    session.commit()
+
+    response = client.post(
+        "/api/v1/lists",
+        json={"title": "Hakuba", "description": "", "template_id": template.id},
+    )
+
+    assert response.status_code == 200
+    list_id = response.json()["data"]["id"]
+
+    detail = client.get(f"/api/v1/lists/{list_id}")
+    assert detail.status_code == 200
+    items = detail.json()["data"]["items"]
+    assert len(items) == 1
+    assert items[0]["name"] == "Quilt"
+
+
+def test_set_list_template_flag(client) -> None:
+    created = client.post("/api/v1/lists", json={"title": "Base", "description": ""})
+    list_id = created.json()["data"]["id"]
+
+    response = client.patch(f"/api/v1/lists/{list_id}/template", json={"is_template": True})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["is_template"] is True

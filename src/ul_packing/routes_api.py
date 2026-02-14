@@ -14,6 +14,7 @@ from ul_packing.schemas_api import (
     GearItemOut,
     PackingListDetailOut,
     PackingListListItemOut,
+    SetTemplateIn,
     SetUnitIn,
     SharedPackingListOut,
     SummaryOut,
@@ -104,6 +105,21 @@ def _commit_and_refresh_list(db: Session, packing_list: PackingList) -> None:
     db.refresh(packing_list)
 
 
+def _clone_template_items(db: Session, template: PackingList, target: PackingList) -> None:
+    for template_item in template.items:
+        item = GearItem(
+            list_id=target.id,
+            name=template_item.name,
+            category=template_item.category,
+            weight_grams=template_item.weight_grams,
+            quantity=template_item.quantity,
+            kind=template_item.kind,
+            notes=template_item.notes,
+            sort_order=template_item.sort_order,
+        )
+        db.add(item)
+
+
 def _get_or_create_gear_inventory_list(db: Session) -> PackingList:
     inventory = db.execute(
         select(PackingList)
@@ -152,12 +168,23 @@ def create_list(payload: CreateListIn, db: Session = Depends(get_db)):
     if not title:
         return _api_error(422, "validation_error", "Title is required")
 
+    template: PackingList | None = None
+    if payload.template_id:
+        template = db.get(PackingList, payload.template_id)
+        if not template or not template.is_template:
+            raise HTTPException(status_code=404, detail="Template not found")
+
     packing_list = PackingList(
         title=title,
         description=payload.description.strip(),
         share_token=generate_share_token(),
     )
     db.add(packing_list)
+    db.flush()
+
+    if template:
+        _clone_template_items(db, template, packing_list)
+
     db.commit()
     db.refresh(packing_list)
     return {"data": _to_list_data(packing_list, include_items=False)}
@@ -240,6 +267,14 @@ def delete_item(list_id: str, item_id: str, db: Session = Depends(get_db)):
 def set_unit(list_id: str, payload: SetUnitIn, db: Session = Depends(get_db)):
     packing_list = _get_list_or_404(db, list_id)
     packing_list.unit = payload.unit
+    _commit_and_refresh_list(db, packing_list)
+    return {"data": _to_list_data(packing_list, include_items=True)}
+
+
+@router.patch("/lists/{list_id}/template")
+def set_template(list_id: str, payload: SetTemplateIn, db: Session = Depends(get_db)):
+    packing_list = _get_list_or_404(db, list_id)
+    packing_list.is_template = payload.is_template
     _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=True)}
 

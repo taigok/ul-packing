@@ -107,6 +107,15 @@ export function ListDetailPage() {
     onError: (error) => toast.error(mutationErrorMessage(error, '単位の更新に失敗しました')),
   })
 
+  const setTemplateMutation = useMutation({
+    mutationFn: (isTemplate: boolean) => api.setTemplate(listId ?? '', isTemplate),
+    onSuccess: async (_, isTemplate) => {
+      await invalidateListQuery()
+      toast.success(isTemplate ? 'テンプレートとして保存しました' : 'テンプレート設定を解除しました')
+    },
+    onError: (error) => toast.error(mutationErrorMessage(error, 'テンプレート設定の更新に失敗しました')),
+  })
+
   const regenerateShareMutation = useMutation({
     mutationFn: () => api.regenerateShareToken(listId ?? ''),
     onSuccess: async () => {
@@ -156,6 +165,14 @@ export function ListDetailPage() {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              void setTemplateMutation.mutateAsync(!list.is_template)
+            }}
+          >
+            {list.is_template ? 'テンプレート解除' : 'テンプレートとして保存'}
+          </Button>
           <Button
             variant="outline"
             onClick={() => {
