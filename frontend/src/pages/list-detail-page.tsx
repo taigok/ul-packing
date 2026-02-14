@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { CopyIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react'
-import { Cell, Label, Pie, PieChart } from 'recharts'
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
+import { CopyIcon, EllipsisVerticalIcon, PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
+import { GearSidebar } from '@/components/gear-sidebar'
 import { ItemFormFields, type ItemFormValue } from '@/components/item-form-fields'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,26 +41,50 @@ import {
 } from '@/components/ui/chart'
 import { ApiError, api } from '@/lib/api'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
-import type { GearItem } from '@/lib/types'
+import type { GearItem, GearListItem, Unit } from '@/lib/types'
 
 const mutationErrorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback
 
-const weightChartConfig = {
-  base: { label: 'ベース', color: 'var(--chart-1)' },
-  consumable: { label: '消耗品', color: 'var(--chart-2)' },
-  worn: { label: '着用', color: 'var(--chart-3)' },
-} satisfies ChartConfig
+function DroppableItemList({ children }: { children: React.ReactNode }) {
+  const { isOver, setNodeRef } = useDroppable({ id: 'packing-list-drop' })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`rounded-lg transition-colors ${isOver ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+    >
+      {children}
+    </div>
+  )
+}
+
+function DragOverlayContent({ item }: { item: GearListItem }) {
+  return (
+    <div className="flex items-center gap-2 rounded-md border bg-card p-2 text-sm shadow-lg">
+      <PlusIcon className="size-4 text-primary" />
+      <span className="font-medium">{item.name}</span>
+      <Badge variant="outline" className="text-xs">
+        {categoryLabel(item.category)}
+      </Badge>
+    </div>
+  )
+}
 
 export function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>()
   const queryClient = useQueryClient()
   const [editingItem, setEditingItem] = useState<GearItem | null>(null)
-  const [isCreateItemOpen, setIsCreateItemOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [activeGearItem, setActiveGearItem] = useState<GearListItem | null>(null)
   const listQueryKey = ['list', listId] as const
   const invalidateListQuery = async () => {
     await queryClient.invalidateQueries({ queryKey: listQueryKey })
   }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  )
 
   const listQuery = useQuery({
     queryKey: listQueryKey,
@@ -101,6 +127,31 @@ export function ListDetailPage() {
     return `${window.location.origin}/s/${listQuery.data.share_token}`
   }, [listQuery.data?.share_token])
 
+  const handleDragStart = (event: DragStartEvent) => {
+    const gearItem = event.active.data.current?.gearItem as GearListItem | undefined
+    if (gearItem) {
+      setActiveGearItem(gearItem)
+    }
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveGearItem(null)
+    const { active, over } = event
+    if (!over || over.id !== 'packing-list-drop') return
+
+    const gearItem = active.data.current?.gearItem as GearListItem | undefined
+    if (!gearItem) return
+
+    createItemMutation.mutate({
+      name: gearItem.name,
+      category: gearItem.category,
+      weight_grams: gearItem.weight_grams,
+      quantity: gearItem.quantity,
+      kind: gearItem.kind,
+      notes: gearItem.notes,
+    })
+  }
+
   if (listQuery.isLoading) return <p>読み込み中...</p>
   if (listQuery.isError || !listQuery.data) return <p className="text-destructive">リストが見つかりません。</p>
 
@@ -111,39 +162,107 @@ export function ListDetailPage() {
     { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
   ] as const
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-col gap-3 px-1 md:flex-row md:items-start md:justify-between">
-        <div className="grid gap-1">
-          <h1 className="text-lg font-semibold">{list.title}</h1>
-          <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 md:justify-end">
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (!shareUrl) return
-              navigator.clipboard.writeText(shareUrl).then(() => toast.success('共有URLをコピーしました'))
-            }}
-          >
-            <CopyIcon className="mr-2 size-4" />
-            共有URLをコピー
-          </Button>
-        </div>
-      </section>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="flex gap-6">
+        {/* Gear Sidebar */}
+        {sidebarOpen && (
+          <aside className="hidden w-72 shrink-0 lg:block">
+            <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-hidden rounded-lg border bg-card">
+              <GearSidebar unit={list.unit} currentListId={list.id} />
+            </div>
+          </aside>
+        )}
 
-      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <Card className="gap-3 py-4">
-          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4">
-            <CardTitle>アイテム一覧</CardTitle>
-            <Dialog open={isCreateItemOpen} onOpenChange={setIsCreateItemOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm">+ アイテム追加</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>アイテム追加</DialogTitle>
-                  <DialogDescription>追加するアイテム情報を入力してください。</DialogDescription>
-                </DialogHeader>
+        {/* Main Content */}
+        <div className="min-w-0 flex-1">
+          <div className="grid gap-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>{list.title}</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="hidden lg:inline-flex"
+                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                  >
+                    {sidebarOpen ? 'ギアパネルを閉じる' : 'ギアパネルを開く'}
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
+              </CardHeader>
+              <CardContent className="flex flex-wrap items-center gap-3">
+                <div className="w-[140px]">
+                  <Select
+                    value={list.unit}
+                    onValueChange={(value) => {
+                      void setUnitMutation.mutateAsync(value as Unit)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="単位" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="g">グラム</SelectItem>
+                      <SelectItem value="oz">オンス</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (!shareUrl) return
+                    navigator.clipboard.writeText(shareUrl).then(() => toast.success('共有URLをコピーしました'))
+                  }}
+                >
+                  <CopyIcon className="mr-2 size-4" />
+                  共有URLをコピー
+                </Button>
+                <Button asChild variant="outline">
+                  <a href={shareUrl} target="_blank" rel="noreferrer">
+                    共有ページを開く
+                  </a>
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive">トークン再生成</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>共有トークンを再生成しますか？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        既存の共有URLはすぐに使えなくなります。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>キャンセル</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void regenerateShareMutation.mutateAsync()}>
+                        再生成
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {summaryCards.map((card) => (
+                <Card key={card.title}>
+                  <CardHeader>
+                    <CardTitle className="text-sm">{card.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-xl font-semibold">
+                    {formatWeight(card.weight, list.unit)}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>アイテム追加</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <ItemFormFields
                   submitLabel="アイテム追加"
                   isSubmitting={createItemMutation.isPending}
@@ -151,140 +270,77 @@ export function ListDetailPage() {
                     await createItemMutation.mutateAsync(values)
                   }}
                 />
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent className="px-4">
-            <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>名前</TableHead>
-                  <TableHead>カテゴリ</TableHead>
-                  <TableHead>種別</TableHead>
-                  <TableHead>重量</TableHead>
-                  <TableHead>個数</TableHead>
-                  <TableHead className="w-[90px]">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{categoryLabel(item.category)}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
-                    </TableCell>
-                    <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-sm">
-                            <EllipsisVerticalIcon className="size-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                            <PencilIcon className="mr-2 size-4" />
-                            編集
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => void deleteItemMutation.mutateAsync(item.id)}
-                          >
-                            <TrashIcon className="mr-2 size-4" />
-                            削除
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        <aside className="grid gap-3 xl:sticky xl:top-4">
-          <Card className="gap-2 py-2">
-            <CardHeader className="px-3">
-              <CardTitle>重量内訳グラフ</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-3">
-              <ChartContainer
-                config={weightChartConfig}
-                className="mx-auto aspect-auto h-[250px] w-full max-w-[300px]"
-              >
-                <PieChart margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
-                  <ChartTooltip content={<ChartTooltipContent nameKey="kind" hideLabel />} />
-                  <Pie
-                    data={kindChartData}
-                    dataKey="weight"
-                    nameKey="label"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={44}
-                    outerRadius={82}
-                    paddingAngle={2}
-                    labelLine={false}
-                  >
-                    {kindChartData.map((entry) => (
-                      <Cell key={entry.kind} fill={entry.fill} />
-                    ))}
-                    <Label
-                      content={({ viewBox }) => {
-                        if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) return null
-
-                        const cx = Number(viewBox.cx)
-                        const cy = Number(viewBox.cy)
-                        if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
-
-                        return (
-                          <g className="select-none">
-                            <text
-                              x={cx}
-                              y={cy - 9}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              className="fill-muted-foreground text-[10px]"
-                            >
-                              総重量
-                            </text>
-                            <text
-                              x={cx}
-                              y={cy + 11}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                              className="fill-foreground text-[12px] font-semibold"
-                            >
-                              {formatWeight(list.summary.total_pack_g, list.unit)}
-                            </text>
-                          </g>
-                        )
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-              <div className="mt-2 grid gap-1 text-xs">
-                {kindChartData.map((entry) => (
-                  <div key={entry.kind} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: entry.fill }} />
-                      <span className="text-muted-foreground">{entry.label}</span>
-                    </div>
-                    <span className="font-medium tabular-nums">
-                      {formatWeight(entry.weight, list.unit)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
+            <DroppableItemList>
+              <Card>
+                <CardHeader>
+                  <CardTitle>アイテム一覧</CardTitle>
+                  <p className="text-xs text-muted-foreground">
+                    左のギアパネルからドラッグ＆ドロップでアイテムを追加できます
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>名前</TableHead>
+                        <TableHead>カテゴリ</TableHead>
+                        <TableHead>種別</TableHead>
+                        <TableHead>重量</TableHead>
+                        <TableHead>個数</TableHead>
+                        <TableHead className="w-[90px]">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {list.items.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
+                          </TableCell>
+                          <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon-sm">
+                                  <EllipsisVerticalIcon className="size-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                                  <PencilIcon className="mr-2 size-4" />
+                                  編集
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => void deleteItemMutation.mutateAsync(item.id)}
+                                >
+                                  <TrashIcon className="mr-2 size-4" />
+                                  削除
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </DroppableItemList>
+          </div>
+        </div>
       </div>
+
+      <DragOverlay>
+        {activeGearItem ? <DragOverlayContent item={activeGearItem} /> : null}
+      </DragOverlay>
 
       <Dialog open={Boolean(editingItem)} onOpenChange={(open) => !open && setEditingItem(null)}>
         <DialogTrigger asChild>
@@ -310,6 +366,6 @@ export function ListDetailPage() {
           ) : null}
         </DialogContent>
       </Dialog>
-    </div>
+    </DndContext>
   )
 }
