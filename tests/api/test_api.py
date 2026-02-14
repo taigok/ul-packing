@@ -162,6 +162,43 @@ def test_get_gear_items_returns_cross_list_items(client, session) -> None:
     assert data[2]["list_title"] == "Older List"
 
 
+def test_create_gear_item_without_list_creates_inventory_list(client, session) -> None:
+    response = client.post(
+        "/api/v1/gear-items",
+        json={
+            "name": "Quilt",
+            "category": "sleeping",
+            "weight_grams": 450,
+            "quantity": 1,
+            "kind": "base",
+            "notes": "",
+        },
+    )
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    assert payload["name"] == "Quilt"
+    assert payload["list_title"] == "My Gear Inventory"
+
+    inventory_list = session.get(PackingList, payload["list_id"])
+    assert inventory_list is not None
+    assert inventory_list.title == "My Gear Inventory"
+    assert inventory_list.is_shared is False
+
+    follow_up = client.post(
+        "/api/v1/gear-items",
+        json={
+            "name": "Spoon",
+            "category": "cooking",
+            "weight_grams": 12,
+            "quantity": 1,
+            "kind": "base",
+            "notes": "",
+        },
+    )
+    assert follow_up.status_code == 200
+    assert follow_up.json()["data"]["list_id"] == payload["list_id"]
+
+
 def test_cors_preflight_for_spa_origin(client) -> None:
     response = client.options(
         "/api/v1/lists",

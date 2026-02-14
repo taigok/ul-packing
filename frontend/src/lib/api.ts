@@ -73,6 +73,7 @@ export type ItemPayload = {
 export const api = {
   getLists: () => request<PackingList[]>('/api/v1/lists'),
   getGearItems: () => request<GearListItem[]>('/api/v1/gear-items'),
+  createGearItem: (payload: ItemPayload) => requestWithBody<GearListItem>('/api/v1/gear-items', 'POST', payload),
   createList: (payload: ListPayload) => requestWithBody<PackingList>('/api/v1/lists', 'POST', payload),
   getList: (listId: string) => request<PackingListDetail>(listPath(listId)),
   createItem: (listId: string, payload: ItemPayload) => requestWithBody<PackingListDetail>(listPath(listId, '/items'), 'POST', payload),

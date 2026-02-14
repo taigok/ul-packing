@@ -23,6 +23,9 @@ from ul_packing.services import compute_summary, generate_share_token
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
 
+_GEAR_INVENTORY_TITLE = "My Gear Inventory"
+_GEAR_INVENTORY_DESCRIPTION = "Auto-created list for direct gear registration"
+
 
 def _api_error(status_code: int, code: str, message: str, details: object | None = None) -> JSONResponse:
     return JSONResponse(
@@ -101,6 +104,30 @@ def _commit_and_refresh_list(db: Session, packing_list: PackingList) -> None:
     db.refresh(packing_list)
 
 
+def _get_or_create_gear_inventory_list(db: Session) -> PackingList:
+    inventory = db.execute(
+        select(PackingList)
+        .where(
+            PackingList.title == _GEAR_INVENTORY_TITLE,
+            PackingList.description == _GEAR_INVENTORY_DESCRIPTION,
+        )
+        .order_by(PackingList.created_at.asc())
+    ).scalars().first()
+    if inventory:
+        return inventory
+
+    inventory = PackingList(
+        title=_GEAR_INVENTORY_TITLE,
+        description=_GEAR_INVENTORY_DESCRIPTION,
+        share_token=generate_share_token(),
+        is_shared=False,
+    )
+    db.add(inventory)
+    db.commit()
+    db.refresh(inventory)
+    return inventory
+
+
 @router.get("/lists")
 def get_lists(db: Session = Depends(get_db)):
     lists = db.execute(select(PackingList).order_by(PackingList.created_at.desc())).scalars().all()
@@ -162,6 +189,33 @@ def create_item(list_id: str, payload: CreateItemIn, db: Session = Depends(get_d
     _commit_and_refresh_list(db, packing_list)
 
     return {"data": _to_list_data(packing_list, include_items=True)}
+
+
+@router.post("/gear-items")
+def create_gear_item(payload: CreateItemIn, db: Session = Depends(get_db)):
+    inventory_list = _get_or_create_gear_inventory_list(db)
+    max_order = db.execute(
+        select(GearItem.sort_order)
+        .where(GearItem.list_id == inventory_list.id)
+        .order_by(GearItem.sort_order.desc())
+    ).scalars().first()
+
+    item = GearItem(
+        list_id=inventory_list.id,
+        name="",
+        category=payload.category,
+        weight_grams=payload.weight_grams,
+        quantity=payload.quantity,
+        kind=payload.kind,
+        notes="",
+        sort_order=(max_order if max_order is not None else -1) + 1,
+    )
+    _apply_item_payload(item, payload)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+
+    return {"data": _to_gear_list_item_out(item, inventory_list.title)}
 
 
 @router.patch("/lists/{list_id}/items/{item_id}")
