@@ -48,7 +48,7 @@ describe('GearPage', () => {
     mockedCreateGearItem.mockResolvedValue({
       id: 'new-item',
       list_id: 'list-inventory',
-      list_title: 'My Gear Inventory',
+      list_title: 'マイギア一覧',
       name: 'New Item',
       category: 'other',
       kind: 'base',

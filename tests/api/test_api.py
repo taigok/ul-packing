@@ -185,11 +185,11 @@ def test_create_gear_item_without_list_creates_inventory_list(client, session) -
     assert response.status_code == 200
     payload = response.json()["data"]
     assert payload["name"] == "Quilt"
-    assert payload["list_title"] == "My Gear Inventory"
+    assert payload["list_title"] == "マイギア一覧"
 
     inventory_list = session.get(PackingList, payload["list_id"])
     assert inventory_list is not None
-    assert inventory_list.title == "My Gear Inventory"
+    assert inventory_list.title == "マイギア一覧"
     assert inventory_list.is_shared is False
 
     follow_up = client.post(

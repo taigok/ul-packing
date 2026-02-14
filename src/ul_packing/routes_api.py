@@ -24,8 +24,8 @@ from ul_packing.services import compute_summary, generate_share_token
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
 
-_GEAR_INVENTORY_TITLE = "My Gear Inventory"
-_GEAR_INVENTORY_DESCRIPTION = "Auto-created list for direct gear registration"
+_GEAR_INVENTORY_TITLE = "マイギア一覧"
+_GEAR_INVENTORY_DESCRIPTION = "ギア直接登録用に自動作成されたリスト"
 
 
 def _api_error(status_code: int, code: str, message: str, details: object | None = None) -> JSONResponse:

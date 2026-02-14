@@ -14,13 +14,17 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ul_packing.config import settings
-from ul_packing.db import Base, engine
+from ul_packing.db import Base, SessionLocal, engine
 from ul_packing.routes_api import router as api_router
+from ul_packing.sample_data import seed_sample_gear_inventory_data
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
+    if settings.seed_sample_data:
+        with SessionLocal() as db:
+            seed_sample_gear_inventory_data(db)
     yield
 
 

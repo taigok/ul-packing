@@ -24,24 +24,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -51,15 +33,13 @@ import {
 } from '@/components/ui/table'
 import {
   ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from '@/components/ui/chart'
 import { ApiError, api } from '@/lib/api'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
-import type { GearItem, Unit } from '@/lib/types'
+import type { GearItem } from '@/lib/types'
 
 const mutationErrorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback
@@ -74,6 +54,7 @@ export function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>()
   const queryClient = useQueryClient()
   const [editingItem, setEditingItem] = useState<GearItem | null>(null)
+  const [isCreateItemOpen, setIsCreateItemOpen] = useState(false)
   const listQueryKey = ['list', listId] as const
   const invalidateListQuery = async () => {
     await queryClient.invalidateQueries({ queryKey: listQueryKey })
@@ -89,6 +70,7 @@ export function ListDetailPage() {
     mutationFn: (payload: ItemFormValue) => api.createItem(listId ?? '', payload),
     onSuccess: async () => {
       await invalidateListQuery()
+      setIsCreateItemOpen(false)
       toast.success('アイテムを追加しました')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの追加に失敗しました')),
@@ -114,23 +96,6 @@ export function ListDetailPage() {
     onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの削除に失敗しました')),
   })
 
-  const setUnitMutation = useMutation({
-    mutationFn: (unit: Unit) => api.setUnit(listId ?? '', unit),
-    onSuccess: async () => {
-      await invalidateListQuery()
-    },
-    onError: (error) => toast.error(mutationErrorMessage(error, '単位の更新に失敗しました')),
-  })
-
-  const regenerateShareMutation = useMutation({
-    mutationFn: () => api.regenerateShareToken(listId ?? ''),
-    onSuccess: async () => {
-      await invalidateListQuery()
-      toast.success('共有トークンを再生成しました')
-    },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'トークン再生成に失敗しました')),
-  })
-
   const shareUrl = useMemo(() => {
     if (!listQuery.data?.share_token) return ''
     return `${window.location.origin}/s/${listQuery.data.share_token}`
@@ -140,71 +105,19 @@ export function ListDetailPage() {
   if (listQuery.isError || !listQuery.data) return <p className="text-destructive">リストが見つかりません。</p>
 
   const list = listQuery.data
-  const summaryCards = [
-    { title: 'ベース', weight: list.summary.base_weight_g },
-    { title: '消耗品', weight: list.summary.consumable_weight_g },
-    { title: '着用', weight: list.summary.worn_weight_g },
-    { title: '合計', weight: list.summary.total_pack_g },
-  ] as const
   const kindChartData = [
     { kind: 'base', label: 'ベース', weight: list.summary.base_weight_g, fill: 'var(--color-base)' },
     { kind: 'consumable', label: '消耗品', weight: list.summary.consumable_weight_g, fill: 'var(--color-consumable)' },
     { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
   ] as const
-  const renderPieLabel = (props: {
-    cx?: number
-    cy?: number
-    midAngle?: number
-    outerRadius?: number
-    index?: number
-  }) => {
-    const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, index = 0 } = props
-    const item = kindChartData[index]
-    if (!item) return null
-
-    const radius = outerRadius + 14
-    const radian = Math.PI / 180
-    const x = cx + radius * Math.cos(-midAngle * radian)
-    const y = cy + radius * Math.sin(-midAngle * radian)
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill={item.fill}
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        className="text-[11px] font-medium"
-      >
-        {item.label}
-      </text>
-    )
-  }
-
   return (
     <div className="grid gap-4">
-      <Card className="gap-4 py-4">
-        <CardHeader className="px-4">
-          <CardTitle>{list.title}</CardTitle>
+      <section className="flex flex-col gap-3 px-1 md:flex-row md:items-start md:justify-between">
+        <div className="grid gap-1">
+          <h1 className="text-lg font-semibold">{list.title}</h1>
           <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
-        </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-2 px-4">
-          <div className="w-[140px]">
-            <Select
-              value={list.unit}
-              onValueChange={(value) => {
-                void setUnitMutation.mutateAsync(value as Unit)
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="単位" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="g">グラム</SelectItem>
-                <SelectItem value="oz">オンス</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 md:justify-end">
           <Button
             variant="outline"
             onClick={() => {
@@ -215,182 +128,163 @@ export function ListDetailPage() {
             <CopyIcon className="mr-2 size-4" />
             共有URLをコピー
           </Button>
-          <Button asChild variant="outline">
-            <a href={shareUrl} target="_blank" rel="noreferrer">
-              共有ページを開く
-            </a>
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">トークン再生成</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>共有トークンを再生成しますか？</AlertDialogTitle>
-                <AlertDialogDescription>
-                  既存の共有URLはすぐに使えなくなります。
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>キャンセル</AlertDialogCancel>
-                <AlertDialogAction onClick={() => void regenerateShareMutation.mutateAsync()}>
-                  再生成
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
-        <div className="grid gap-4 md:grid-cols-2">
-          {summaryCards.map((card) => (
-            <Card key={card.title} className="gap-2 py-3">
-              <CardHeader className="px-4">
-                <CardTitle className="text-sm">{card.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="px-4 text-lg font-semibold">
-                {formatWeight(card.weight, list.unit)}
-              </CardContent>
-            </Card>
-          ))}
         </div>
-        <Card className="gap-2 py-3">
-          <CardHeader className="px-4">
-            <CardTitle>重量内訳グラフ</CardTitle>
+      </section>
+
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <Card className="gap-3 py-4">
+          <CardHeader className="flex flex-row items-center justify-between gap-3 px-4">
+            <CardTitle>アイテム一覧</CardTitle>
+            <Dialog open={isCreateItemOpen} onOpenChange={setIsCreateItemOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">+ アイテム追加</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>アイテム追加</DialogTitle>
+                  <DialogDescription>追加するアイテム情報を入力してください。</DialogDescription>
+                </DialogHeader>
+                <ItemFormFields
+                  submitLabel="アイテム追加"
+                  isSubmitting={createItemMutation.isPending}
+                  onSubmit={async (values) => {
+                    await createItemMutation.mutateAsync(values)
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
           </CardHeader>
           <CardContent className="px-4">
-            <ChartContainer config={weightChartConfig} className="aspect-auto h-[220px] w-full">
-              <PieChart margin={{ top: 8, right: 40, bottom: 8, left: 40 }}>
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Pie
-                  data={kindChartData}
-                  dataKey="weight"
-                  nameKey="label"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={34}
-                  outerRadius={62}
-                  paddingAngle={2}
-                  labelLine={false}
-                  label={renderPieLabel}
-                >
-                  {kindChartData.map((entry) => (
-                    <Cell key={entry.kind} fill={entry.fill} />
-                  ))}
-                  <Label
-                    content={({ viewBox }) => {
-                      if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) return null
-
-                      const cx = Number(viewBox.cx)
-                      const cy = Number(viewBox.cy)
-                      if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
-
-                      return (
-                        <g className="select-none">
-                          <text
-                            x={cx}
-                            y={cy - 9}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            className="fill-muted-foreground text-[10px]"
+            <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>名前</TableHead>
+                  <TableHead>カテゴリ</TableHead>
+                  <TableHead>種別</TableHead>
+                  <TableHead>重量</TableHead>
+                  <TableHead>個数</TableHead>
+                  <TableHead className="w-[90px]">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {list.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
+                    </TableCell>
+                    <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
+                    <TableCell>{item.quantity}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon-sm">
+                            <EllipsisVerticalIcon className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                            <PencilIcon className="mr-2 size-4" />
+                            編集
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => void deleteItemMutation.mutateAsync(item.id)}
                           >
-                            総重量
-                          </text>
-                          <text
-                            x={cx}
-                            y={cy + 11}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                            className="fill-foreground text-[12px] font-semibold"
-                          >
-                            {formatWeight(list.summary.total_pack_g, list.unit)}
-                          </text>
-                        </g>
-                      )
-                    }}
-                  />
-                </Pie>
-                <ChartLegend
-                  content={<ChartLegendContent nameKey="kind" />}
-                />
-              </PieChart>
-            </ChartContainer>
+                            <TrashIcon className="mr-2 size-4" />
+                            削除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
+
+        <aside className="grid gap-3 xl:sticky xl:top-4">
+          <Card className="gap-2 py-2">
+            <CardHeader className="px-3">
+              <CardTitle>重量内訳グラフ</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3">
+              <ChartContainer
+                config={weightChartConfig}
+                className="mx-auto aspect-auto h-[250px] w-full max-w-[300px]"
+              >
+                <PieChart margin={{ top: 8, right: 16, bottom: 8, left: 16 }}>
+                  <ChartTooltip content={<ChartTooltipContent nameKey="kind" hideLabel />} />
+                  <Pie
+                    data={kindChartData}
+                    dataKey="weight"
+                    nameKey="label"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={44}
+                    outerRadius={82}
+                    paddingAngle={2}
+                    labelLine={false}
+                  >
+                    {kindChartData.map((entry) => (
+                      <Cell key={entry.kind} fill={entry.fill} />
+                    ))}
+                    <Label
+                      content={({ viewBox }) => {
+                        if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) return null
+
+                        const cx = Number(viewBox.cx)
+                        const cy = Number(viewBox.cy)
+                        if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
+
+                        return (
+                          <g className="select-none">
+                            <text
+                              x={cx}
+                              y={cy - 9}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              className="fill-muted-foreground text-[10px]"
+                            >
+                              総重量
+                            </text>
+                            <text
+                              x={cx}
+                              y={cy + 11}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                              className="fill-foreground text-[12px] font-semibold"
+                            >
+                              {formatWeight(list.summary.total_pack_g, list.unit)}
+                            </text>
+                          </g>
+                        )
+                      }}
+                    />
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+              <div className="mt-2 grid gap-1 text-xs">
+                {kindChartData.map((entry) => (
+                  <div key={entry.kind} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: entry.fill }} />
+                      <span className="text-muted-foreground">{entry.label}</span>
+                    </div>
+                    <span className="font-medium tabular-nums">
+                      {formatWeight(entry.weight, list.unit)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
-
-      <Card className="gap-3 py-4">
-        <CardHeader className="px-4">
-          <CardTitle>アイテム追加</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4">
-          <ItemFormFields
-            submitLabel="アイテム追加"
-            isSubmitting={createItemMutation.isPending}
-            onSubmit={async (values) => {
-              await createItemMutation.mutateAsync(values)
-            }}
-          />
-        </CardContent>
-      </Card>
-
-      <Card className="gap-3 py-4">
-        <CardHeader className="px-4">
-          <CardTitle>アイテム一覧</CardTitle>
-        </CardHeader>
-        <CardContent className="px-4">
-          <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
-            <TableHeader>
-              <TableRow>
-                <TableHead>名前</TableHead>
-                <TableHead>カテゴリ</TableHead>
-                <TableHead>種別</TableHead>
-                <TableHead>重量</TableHead>
-                <TableHead>個数</TableHead>
-                <TableHead className="w-[90px]">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {list.items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{categoryLabel(item.category)}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
-                  </TableCell>
-                  <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon-sm">
-                          <EllipsisVerticalIcon className="size-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                          <PencilIcon className="mr-2 size-4" />
-                          編集
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => void deleteItemMutation.mutateAsync(item.id)}
-                        >
-                          <TrashIcon className="mr-2 size-4" />
-                          削除
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       <Dialog open={Boolean(editingItem)} onOpenChange={(open) => !open && setEditingItem(null)}>
         <DialogTrigger asChild>

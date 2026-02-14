@@ -10,7 +10,7 @@ describe('ListCreateForm', () => {
 
     render(<ListCreateForm isSubmitting={false} onSubmit={onSubmit} />)
 
-    await user.type(screen.getByLabelText('Title'), 'Test list')
+    await user.type(screen.getByLabelText('タイトル'), 'Test list')
     await user.type(screen.getByLabelText('説明'), 'desc')
     await user.click(screen.getByRole('button', { name: 'リストを作成' }))
 
