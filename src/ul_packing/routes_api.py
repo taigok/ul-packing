@@ -10,6 +10,7 @@ from ul_packing.models import GearItem, PackingList
 from ul_packing.schemas_api import (
     CreateItemIn,
     CreateListIn,
+    GearListItemOut,
     GearItemOut,
     SetUnitIn,
     SharedPackingListOut,
@@ -70,6 +71,32 @@ def _to_list_data(packing_list: PackingList, include_items: bool) -> dict[str, o
 def get_lists(db: Session = Depends(get_db)):
     lists = db.execute(select(PackingList).order_by(PackingList.created_at.desc())).scalars().all()
     return {"data": [_to_list_data(packing_list, include_items=False) for packing_list in lists]}
+
+
+@router.get("/gear-items")
+def get_gear_items(db: Session = Depends(get_db)):
+    rows = db.execute(
+        select(GearItem, PackingList.title)
+        .join(PackingList, GearItem.list_id == PackingList.id)
+        .order_by(PackingList.created_at.desc(), GearItem.sort_order.asc(), GearItem.id.asc())
+    ).all()
+
+    data = [
+        GearListItemOut(
+            id=item.id,
+            list_id=item.list_id,
+            list_title=list_title,
+            name=item.name,
+            category=item.category,
+            kind=item.kind,
+            weight_grams=item.weight_grams,
+            quantity=item.quantity,
+            notes=item.notes,
+            sort_order=item.sort_order,
+        ).model_dump(mode="json")
+        for item, list_title in rows
+    ]
+    return {"data": data}
 
 
 @router.post("/lists")

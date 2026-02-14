@@ -1,4 +1,4 @@
-from ul_packing.models import PackingList
+from ul_packing.models import GearItem, PackingList
 from ul_packing.services import generate_share_token
 
 
@@ -101,6 +101,65 @@ def test_shared_not_found(client) -> None:
     response = client.get("/api/v1/shared/not-found")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
+
+
+def test_get_gear_items_returns_cross_list_items(client, session) -> None:
+    older = PackingList(title="Older List", share_token=generate_share_token())
+    session.add(older)
+    session.commit()
+
+    newer = PackingList(title="Newer List", share_token=generate_share_token())
+    session.add(newer)
+    session.commit()
+
+    older_item = GearItem(
+        list_id=older.id,
+        name="Stove",
+        category="cooking",
+        weight_grams=200,
+        quantity=1,
+        kind="base",
+        notes="",
+        sort_order=0,
+    )
+    newer_item_2 = GearItem(
+        list_id=newer.id,
+        name="Tent",
+        category="shelter",
+        weight_grams=800,
+        quantity=1,
+        kind="base",
+        notes="",
+        sort_order=1,
+    )
+    newer_item_1 = GearItem(
+        list_id=newer.id,
+        name="Pack",
+        category="backpack",
+        weight_grams=500,
+        quantity=1,
+        kind="base",
+        notes="",
+        sort_order=0,
+    )
+    session.add_all([older_item, newer_item_2, newer_item_1])
+    session.commit()
+
+    response = client.get("/api/v1/gear-items")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert len(data) == 3
+
+    assert data[0]["name"] == "Pack"
+    assert data[0]["list_id"] == newer.id
+    assert data[0]["list_title"] == "Newer List"
+    assert data[1]["name"] == "Tent"
+    assert data[1]["list_id"] == newer.id
+    assert data[1]["list_title"] == "Newer List"
+    assert data[2]["name"] == "Stove"
+    assert data[2]["list_id"] == older.id
+    assert data[2]["list_title"] == "Older List"
 
 
 def test_cors_preflight_for_spa_origin(client) -> None:

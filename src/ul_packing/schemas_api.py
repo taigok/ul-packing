@@ -39,6 +39,19 @@ class GearItemOut(BaseModel):
     sort_order: int
 
 
+class GearListItemOut(BaseModel):
+    id: str
+    list_id: str
+    list_title: str
+    name: str
+    category: Category
+    kind: ItemKind
+    weight_grams: int
+    quantity: int
+    notes: str
+    sort_order: int
+
+
 class PackingListListItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

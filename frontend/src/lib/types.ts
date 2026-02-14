@@ -32,6 +32,19 @@ export type GearItem = {
   sort_order: number
 }
 
+export type GearListItem = {
+  id: string
+  list_id: string
+  list_title: string
+  name: string
+  category: Category
+  kind: ItemKind
+  weight_grams: number
+  quantity: number
+  notes: string
+  sort_order: number
+}
+
 export type PackingList = {
   id: string
   title: string

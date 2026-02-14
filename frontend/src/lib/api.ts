@@ -1,4 +1,11 @@
-import type { ApiErrorBody, PackingList, PackingListDetail, SharedPackingList, Unit } from '@/lib/types'
+import type {
+  ApiErrorBody,
+  GearListItem,
+  PackingList,
+  PackingListDetail,
+  SharedPackingList,
+  Unit,
+} from '@/lib/types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
 
@@ -57,6 +64,7 @@ export type ItemPayload = {
 
 export const api = {
   getLists: () => request<PackingList[]>('/api/v1/lists'),
+  getGearItems: () => request<GearListItem[]>('/api/v1/gear-items'),
   createList: (payload: ListPayload) => request<PackingList>('/api/v1/lists', { method: 'POST', body: JSON.stringify(payload) }),
   getList: (listId: string) => request<PackingListDetail>(`/api/v1/lists/${listId}`),
   createItem: (listId: string, payload: ItemPayload) =>
