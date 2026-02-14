@@ -33,9 +33,9 @@ export function ListCreateForm({ isSubmitting, onSubmit }: Props) {
   return (
     <form className="grid gap-4" onSubmit={handleSubmit(submit)}>
       <div className="grid gap-2">
-        <Label htmlFor="title">Title</Label>
-        <Input id="title" {...register('title', { required: true, maxLength: 100 })} placeholder="Northern Alps 2 days" />
-        {errors.title ? <p className="text-sm text-destructive">Title は必須です（最大100文字）。</p> : null}
+        <Label htmlFor="title">タイトル</Label>
+        <Input id="title" {...register('title', { required: true, maxLength: 100 })} placeholder="北アルプス 2泊3日" />
+        {errors.title ? <p className="text-sm text-destructive">タイトルは必須です（最大100文字）。</p> : null}
       </div>
       <div className="grid gap-2">
         <Label htmlFor="description">説明</Label>

@@ -88,6 +88,10 @@ class CreateListIn(BaseModel):
     description: str = Field(default="", max_length=500)
 
 
+class UpdateListIn(CreateListIn):
+    pass
+
+
 class CreateItemIn(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     category: Category = Category.OTHER

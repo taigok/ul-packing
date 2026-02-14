@@ -26,24 +26,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   Table,
   TableBody,
   TableCell,
@@ -51,6 +33,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 import { ApiError, api } from '@/lib/api'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
 import type { GearItem, GearListItem, Unit } from '@/lib/types'
@@ -108,6 +96,7 @@ export function ListDetailPage() {
     mutationFn: (payload: ItemFormValue) => api.createItem(listId ?? '', payload),
     onSuccess: async () => {
       await invalidateListQuery()
+      setIsCreateItemOpen(false)
       toast.success('アイテムを追加しました')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの追加に失敗しました')),
@@ -131,23 +120,6 @@ export function ListDetailPage() {
       toast.success('アイテムを削除しました')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの削除に失敗しました')),
-  })
-
-  const setUnitMutation = useMutation({
-    mutationFn: (unit: Unit) => api.setUnit(listId ?? '', unit),
-    onSuccess: async () => {
-      await invalidateListQuery()
-    },
-    onError: (error) => toast.error(mutationErrorMessage(error, '単位の更新に失敗しました')),
-  })
-
-  const regenerateShareMutation = useMutation({
-    mutationFn: () => api.regenerateShareToken(listId ?? ''),
-    onSuccess: async () => {
-      await invalidateListQuery()
-      toast.success('共有トークンを再生成しました')
-    },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'トークン再生成に失敗しました')),
   })
 
   const shareUrl = useMemo(() => {
@@ -184,13 +156,11 @@ export function ListDetailPage() {
   if (listQuery.isError || !listQuery.data) return <p className="text-destructive">リストが見つかりません。</p>
 
   const list = listQuery.data
-  const summaryCards = [
-    { title: 'ベース', weight: list.summary.base_weight_g },
-    { title: '消耗品', weight: list.summary.consumable_weight_g },
-    { title: '着用', weight: list.summary.worn_weight_g },
-    { title: '合計', weight: list.summary.total_pack_g },
+  const kindChartData = [
+    { kind: 'base', label: 'ベース', weight: list.summary.base_weight_g, fill: 'var(--color-base)' },
+    { kind: 'consumable', label: '消耗品', weight: list.summary.consumable_weight_g, fill: 'var(--color-consumable)' },
+    { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
   ] as const
-
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-6">

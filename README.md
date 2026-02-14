@@ -86,6 +86,8 @@ VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 4
   - 例: `sqlite+pysqlite:///./data/app.db`
 - `ALLOWED_ORIGINS` (optional, comma separated)
   - 例: `http://127.0.0.1:4173,http://localhost:4173`
+- `SEED_SAMPLE_DATA` (optional)
+  - `true` のとき、起動時に Gear 一覧向けサンプルデータを自動投入（既存アイテムがある場合はスキップ）
 - `VITE_API_BASE_URL` (frontend)
   - 例: `http://127.0.0.1:8000`
 
@@ -93,6 +95,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 4
 
 - `GET /api/v1/lists`
 - `POST /api/v1/lists`
+- `PATCH /api/v1/lists/{list_id}`
 - `GET /api/v1/lists/{list_id}`
 - `POST /api/v1/lists/{list_id}/items`
 - `PATCH /api/v1/lists/{list_id}/items/{item_id}`

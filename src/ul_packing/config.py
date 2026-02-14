@@ -22,10 +22,18 @@ def _parse_allowed_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _parse_bool_env(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite+pysqlite:///./data/app.db")
     allowed_origins: list[str] = field(default_factory=_parse_allowed_origins)
+    seed_sample_data: bool = _parse_bool_env("SEED_SAMPLE_DATA", default=False)
 
 
 settings = Settings()

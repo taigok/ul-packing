@@ -10,6 +10,14 @@ def test_list_api_crud_and_share_flow(client, session) -> None:
     assert create_list.status_code == 200
     list_id = create_list.json()["data"]["id"]
 
+    update_list = client.patch(
+        f"/api/v1/lists/{list_id}",
+        json={"title": "API List Updated", "description": "patched"},
+    )
+    assert update_list.status_code == 200
+    assert update_list.json()["data"]["title"] == "API List Updated"
+    assert update_list.json()["data"]["description"] == "patched"
+
     add_item = client.post(
         f"/api/v1/lists/{list_id}/items",
         json={
@@ -177,11 +185,11 @@ def test_create_gear_item_without_list_creates_inventory_list(client, session) -
     assert response.status_code == 200
     payload = response.json()["data"]
     assert payload["name"] == "Quilt"
-    assert payload["list_title"] == "My Gear Inventory"
+    assert payload["list_title"] == "マイギア一覧"
 
     inventory_list = session.get(PackingList, payload["list_id"])
     assert inventory_list is not None
-    assert inventory_list.title == "My Gear Inventory"
+    assert inventory_list.title == "マイギア一覧"
     assert inventory_list.is_shared is False
 
     follow_up = client.post(

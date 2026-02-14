@@ -12,15 +12,12 @@ vi.mock('@/lib/api', async (importOriginal) => {
     ...actual,
     api: {
       ...actual.api,
-      getGearItems: vi.fn(),
       getLists: vi.fn(),
       createList: vi.fn(),
-      createGearItem: vi.fn(),
     },
   }
 })
 
-const mockedGetGearItems = vi.mocked(api.getGearItems)
 const mockedGetLists = vi.mocked(api.getLists)
 const mockedCreateList = vi.mocked(api.createList)
 
@@ -60,21 +57,7 @@ describe('ListsPage', () => {
     vi.resetAllMocks()
   })
 
-  it('shows gear and packing lists on home', async () => {
-    mockedGetGearItems.mockResolvedValue([
-      {
-        id: 'item-1',
-        list_id: 'list-1',
-        list_title: 'Yari 2D',
-        name: 'Tent',
-        category: 'shelter',
-        kind: 'base',
-        weight_grams: 800,
-        quantity: 1,
-        notes: '',
-        sort_order: 0,
-      },
-    ])
+  it('shows packing lists only', async () => {
     mockedGetLists.mockResolvedValue([
       {
         id: 'list-1',
@@ -90,26 +73,23 @@ describe('ListsPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Tent')).toBeInTheDocument()
-    expect(screen.getAllByText('Yari 2D')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'リストを開く' })).toHaveAttribute('href', '/lists/list-1')
-    expect(screen.getAllByRole('button', { name: '+ 新規' })).toHaveLength(2)
+    expect(await screen.findByText('Yari 2D')).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '操作' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: 'リスト' })).not.toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: '+ 新規' })).toHaveLength(1)
+    expect(screen.queryByText('マイギア')).not.toBeInTheDocument()
   })
 
-  it('shows empty gear helper text', async () => {
-    mockedGetGearItems.mockResolvedValue([])
+  it('shows empty packing list helper text', async () => {
     mockedGetLists.mockResolvedValue([])
 
     renderPage()
 
-    expect(await screen.findByText('まだギアがありません。最初のギアを追加しましょう。')).toBeInTheDocument()
-    expect(await screen.findByRole('button', { name: '最初のギアを追加' })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: '最初のリストを作成' })).toBeInTheDocument()
   })
 
   it('opens create list dialog from packing lists card action', async () => {
     const user = userEvent.setup()
-    mockedGetGearItems.mockResolvedValue([])
     mockedGetLists.mockResolvedValue([])
 
     renderPage()
@@ -118,18 +98,5 @@ describe('ListsPage', () => {
 
     expect(screen.getByRole('heading', { name: 'パッキングリストを作成' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'リストを作成' })).toBeInTheDocument()
-  })
-
-  it('opens add gear dialog from my gear empty state action', async () => {
-    const user = userEvent.setup()
-    mockedGetGearItems.mockResolvedValue([])
-    mockedGetLists.mockResolvedValue([])
-
-    renderPage()
-
-    await user.click(await screen.findByRole('button', { name: '最初のギアを追加' }))
-
-    expect(screen.getByRole('heading', { name: 'ギアを追加' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'ギア追加' })).toBeInTheDocument()
   })
 })

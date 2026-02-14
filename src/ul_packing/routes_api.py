@@ -18,13 +18,14 @@ from ul_packing.schemas_api import (
     SharedPackingListOut,
     SummaryOut,
     UpdateItemIn,
+    UpdateListIn,
 )
 from ul_packing.services import compute_summary, generate_share_token
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
 
-_GEAR_INVENTORY_TITLE = "My Gear Inventory"
-_GEAR_INVENTORY_DESCRIPTION = "Auto-created list for direct gear registration"
+_GEAR_INVENTORY_TITLE = "マイギア一覧"
+_GEAR_INVENTORY_DESCRIPTION = "ギア直接登録用に自動作成されたリスト"
 
 
 def _api_error(status_code: int, code: str, message: str, details: object | None = None) -> JSONResponse:
@@ -160,6 +161,19 @@ def create_list(payload: CreateListIn, db: Session = Depends(get_db)):
     db.add(packing_list)
     db.commit()
     db.refresh(packing_list)
+    return {"data": _to_list_data(packing_list, include_items=False)}
+
+
+@router.patch("/lists/{list_id}")
+def update_list(list_id: str, payload: UpdateListIn, db: Session = Depends(get_db)):
+    title = payload.title.strip()
+    if not title:
+        return _api_error(422, "validation_error", "Title is required")
+
+    packing_list = _get_list_or_404(db, list_id)
+    packing_list.title = title
+    packing_list.description = payload.description.strip()
+    _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=False)}
 
 
