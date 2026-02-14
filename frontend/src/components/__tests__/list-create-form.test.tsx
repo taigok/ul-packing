@@ -8,12 +8,12 @@ describe('ListCreateForm', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
 
-    render(<ListCreateForm isSubmitting={false} onSubmit={onSubmit} />)
+    render(<ListCreateForm isSubmitting={false} templates={[]} onSubmit={onSubmit} />)
 
     await user.type(screen.getByLabelText('Title'), 'Test list')
     await user.type(screen.getByLabelText('説明'), 'desc')
     await user.click(screen.getByRole('button', { name: 'リストを作成' }))
 
-    expect(onSubmit).toHaveBeenCalledWith({ title: 'Test list', description: 'desc' })
+    expect(onSubmit).toHaveBeenCalledWith({ title: 'Test list', description: 'desc', template_id: undefined })
   })
 })

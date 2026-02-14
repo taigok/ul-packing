@@ -59,6 +59,7 @@ const listPath = (listId: string, suffix = '') => `/api/v1/lists/${listId}${suff
 export type ListPayload = {
   title: string
   description: string
+  template_id?: string
 }
 
 export type ItemPayload = {
@@ -83,6 +84,8 @@ export const api = {
     request<PackingListDetail>(listPath(listId, `/items/${itemId}`), { method: 'DELETE' }),
   setUnit: (listId: string, unit: Unit) =>
     requestWithBody<PackingListDetail>(listPath(listId, '/unit'), 'PATCH', { unit }),
+  setTemplate: (listId: string, is_template: boolean) =>
+    requestWithBody<PackingListDetail>(listPath(listId, '/template'), 'PATCH', { is_template }),
   getShared: (token: string) => request<SharedPackingList>(`/api/v1/shared/${token}`),
   regenerateShareToken: (listId: string) =>
     request<PackingListDetail>(listPath(listId, '/share/regenerate'), { method: 'POST' }),

@@ -51,6 +51,7 @@ describe('ListsPage', () => {
       unit: 'g',
       share_token: '',
       is_shared: false,
+      is_template: false,
       created_at: '',
       updated_at: '',
     })
@@ -83,6 +84,7 @@ describe('ListsPage', () => {
         unit: 'g',
         share_token: '',
         is_shared: false,
+        is_template: false,
         created_at: '',
         updated_at: '',
       },

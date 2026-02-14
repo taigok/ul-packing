@@ -1,21 +1,33 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import type { PackingList } from '@/lib/types'
 
 export type ListFormValue = {
   title: string
   description: string
+  template_id?: string
 }
 
 type Props = {
   isSubmitting: boolean
+  templates: PackingList[]
   onSubmit: (values: ListFormValue) => Promise<void>
 }
 
-export function ListCreateForm({ isSubmitting, onSubmit }: Props) {
+export function ListCreateForm({ isSubmitting, templates, onSubmit }: Props) {
+  const [templateId, setTemplateId] = useState<string | undefined>(undefined)
   const {
     register,
     handleSubmit,
@@ -26,12 +38,33 @@ export function ListCreateForm({ isSubmitting, onSubmit }: Props) {
   })
 
   const submit = async (values: ListFormValue) => {
-    await onSubmit({ title: values.title.trim(), description: values.description.trim() })
+    await onSubmit({
+      title: values.title.trim(),
+      description: values.description.trim(),
+      template_id: templateId,
+    })
     reset()
+    setTemplateId(undefined)
   }
 
   return (
     <form className="grid gap-4" onSubmit={handleSubmit(submit)}>
+      <div className="grid gap-2">
+        <Label htmlFor="template">テンプレート</Label>
+        <Select value={templateId ?? 'none'} onValueChange={(value) => setTemplateId(value === 'none' ? undefined : value)}>
+          <SelectTrigger id="template">
+            <SelectValue placeholder="テンプレートを選択（任意）" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">選択しない</SelectItem>
+            {templates.map((template) => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
       <div className="grid gap-2">
         <Label htmlFor="title">Title</Label>
         <Input id="title" {...register('title', { required: true, maxLength: 100 })} placeholder="Northern Alps 2 days" />

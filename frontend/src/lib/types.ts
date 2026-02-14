@@ -52,6 +52,7 @@ export type PackingList = {
   unit: Unit
   share_token: string
   is_shared: boolean
+  is_template: boolean
   created_at: string
   updated_at: string
 }
