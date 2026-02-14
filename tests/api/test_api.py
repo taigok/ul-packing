@@ -101,3 +101,15 @@ def test_shared_not_found(client) -> None:
     response = client.get("/api/v1/shared/not-found")
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
+
+
+def test_cors_preflight_for_spa_origin(client) -> None:
+    response = client.options(
+        "/api/v1/lists",
+        headers={
+            "Origin": "http://127.0.0.1:4173",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"

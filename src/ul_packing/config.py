@@ -4,8 +4,19 @@ import os
 from dataclasses import dataclass, field
 
 
+def _default_allowed_origins() -> list[str]:
+    return [
+        "http://127.0.0.1:4173",
+        "http://localhost:4173",
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+    ]
+
+
 def _parse_allowed_origins() -> list[str]:
-    raw = os.getenv("ALLOWED_ORIGINS", "")
+    raw = os.getenv("ALLOWED_ORIGINS")
+    if raw is None:
+        return _default_allowed_origins()
     if not raw.strip():
         return []
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
