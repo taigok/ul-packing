@@ -1,0 +1,34 @@
+<div class="card table-wrap">
+<table class="gear-table">
+  <thead>
+    <tr>
+      <th>装備名</th>
+      <th>カテゴリ</th>
+      <th>区分</th>
+      <th>重量</th>
+      <th>個数</th>
+      <th>小計</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in packing_list.items %}
+      <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.category.value }}</td>
+        <td>{{ item.kind.value }}</td>
+        <td>{{ format_weight(item.weight_grams, packing_list.unit.value) }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ format_weight(item.weight_grams * item.quantity, packing_list.unit.value) }}</td>
+        <td>
+          <form method="post" action="/lists/{{ packing_list.id }}/items/{{ item.id }}/delete">
+            <button type="submit" class="btn-danger">削除</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7">装備がありません。</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

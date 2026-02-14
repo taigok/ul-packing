@@ -1,0 +1,6 @@
+<div class="summary-grid">
+  <div class="card stat-card"><h3>ベース重量</h3><p>{{ format_weight(summary.base_weight_g, packing_list.unit.value) }}</p></div>
+  <div class="card stat-card"><h3>消耗品</h3><p>{{ format_weight(summary.consumable_weight_g, packing_list.unit.value) }}</p></div>
+  <div class="card stat-card"><h3>着用</h3><p>{{ format_weight(summary.worn_weight_g, packing_list.unit.value) }}</p></div>
+  <div class="card stat-card"><h3>合計</h3><p>{{ format_weight(summary.total_pack_g, packing_list.unit.value) }}</p></div>
+</div>

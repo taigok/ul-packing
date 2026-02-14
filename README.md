@@ -1,36 +1,144 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# UL Packing
 
-## Getting Started
+UL向けパッキングリスト管理アプリです。  
+現在は **FastAPI Backend API + React(Vite) SPA + shadcn/ui** 構成です。  
+既存の `Jinja2 + htmx` 画面も後方互換のため残しています。
 
-First, run the development server:
+## 機能
+
+- パッキングリスト作成
+- 装備アイテム CRUD
+- 重量サマリー（Base / Consumable / Worn / Total）
+- 単位切替（g / oz）
+- 共有ビュー
+- 共有トークン再生成（旧URL無効化）
+
+## 技術スタック
+
+### Backend
+- Python 3.13
+- FastAPI
+- SQLAlchemy
+- Alembic
+- SQLite
+
+### Frontend
+- React 19
+- Vite
+- React Router
+- TanStack Query
+- shadcn/ui
+- Tailwind CSS v4
+
+### Test
+- pytest
+- Vitest + Testing Library
+- Playwright
+
+## ディレクトリ
+
+- `src/ul_packing` Backend実装
+- `frontend` SPA実装
+- `tests/api` APIテスト
+- `tests/web` 既存Web(HTML)テスト
+- `tests/e2e` E2Eテスト
+
+## セットアップ
+
+前提:
+- Python 3.13
+- `uv`
+- Node.js
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+uv sync --all-groups
+npm ci
+cd frontend && npm ci
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Playwright初回セットアップ:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx playwright install --with-deps chromium
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## 起動
 
-## Learn More
+### 1) Backend API
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+uv run uvicorn ul_packing.main:app --host 127.0.0.1 --port 8000 --reload
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2) Frontend SPA
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+別ターミナルで:
 
-## Deploy on Vercel
+```bash
+cd frontend
+VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 4173
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+アクセス先:
+- SPA: `http://127.0.0.1:4173`
+- Backend(OpenAPI含む): `http://127.0.0.1:8000`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+## 環境変数
+
+- `DATABASE_URL` (optional)
+  - 例: `sqlite+pysqlite:///./data/app.db`
+- `ALLOWED_ORIGINS` (optional, comma separated)
+  - 例: `http://127.0.0.1:4173,http://localhost:4173`
+- `VITE_API_BASE_URL` (frontend)
+  - 例: `http://127.0.0.1:8000`
+
+## APIエンドポイント（`/api/v1`）
+
+- `GET /api/v1/lists`
+- `POST /api/v1/lists`
+- `GET /api/v1/lists/{list_id}`
+- `POST /api/v1/lists/{list_id}/items`
+- `PATCH /api/v1/lists/{list_id}/items/{item_id}`
+- `DELETE /api/v1/lists/{list_id}/items/{item_id}`
+- `PATCH /api/v1/lists/{list_id}/unit`
+- `GET /api/v1/shared/{share_token}`
+- `POST /api/v1/lists/{list_id}/share/regenerate`
+
+## テスト
+
+### Backend/API
+
+```bash
+uv run pytest
+```
+
+### Frontend unit
+
+```bash
+cd frontend
+npm run test
+```
+
+### Frontend build
+
+```bash
+cd frontend
+npm run build
+```
+
+### E2E
+
+```bash
+npx playwright test
+```
+
+## DBマイグレーション
+
+```bash
+uv run alembic upgrade head
+```
+
+## 補足
+
+- 既存HTMLルート（`/`, `/lists/...`, `/s/...`）は引き続き利用可能です。
+- SPA導線を利用する場合は `http://127.0.0.1:4173` を開いてください。
