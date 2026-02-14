@@ -8,8 +8,11 @@ export function AppLayout() {
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <div className="flex items-center gap-4">
-            <Link to="/" className="text-lg font-semibold tracking-tight">
+            <Link to="/lists" className="text-lg font-semibold tracking-tight">
               UL Packing
+            </Link>
+            <Link to="/lists" className="text-sm text-muted-foreground hover:text-foreground">
+              パッキングリスト
             </Link>
             <Link to="/gear" className="text-sm text-muted-foreground hover:text-foreground">
               マイギア

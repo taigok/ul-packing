@@ -11,7 +11,8 @@ export default function App() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<ListsPage />} />
+        <Route path="/" element={<Navigate to="/lists" replace />} />
+        <Route path="/lists" element={<ListsPage />} />
         <Route path="/gear" element={<GearPage />} />
         <Route path="/lists/:listId" element={<ListDetailPage />} />
         <Route path="/s/:token" element={<SharedPage />} />
