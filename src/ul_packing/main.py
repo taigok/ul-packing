@@ -11,13 +11,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.requests import Request
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ul_packing.config import settings
 from ul_packing.db import Base, engine
 from ul_packing.routes_api import router as api_router
-from ul_packing.routes_web import router
 
 
 @asynccontextmanager
@@ -27,8 +25,6 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="UL Packing", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(router)
 app.include_router(api_router)
 
 if settings.allowed_origins:

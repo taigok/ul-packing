@@ -1,8 +1,7 @@
 # UL Packing
 
 UL向けパッキングリスト管理アプリです。  
-現在は **FastAPI Backend API + React(Vite) SPA + shadcn/ui** 構成です。  
-既存の `Jinja2 + htmx` 画面も後方互換のため残しています。
+現在は **FastAPI Backend API + React(Vite) SPA + shadcn/ui** 構成です。
 
 ## 機能
 
@@ -19,7 +18,6 @@ UL向けパッキングリスト管理アプリです。
 - Python 3.13
 - FastAPI
 - SQLAlchemy
-- Alembic
 - SQLite
 
 ### Frontend
@@ -40,7 +38,6 @@ UL向けパッキングリスト管理アプリです。
 - `src/ul_packing` Backend実装
 - `frontend` SPA実装
 - `tests/api` APIテスト
-- `tests/web` 既存Web(HTML)テスト
 - `tests/e2e` E2Eテスト
 
 ## セットアップ
@@ -132,13 +129,6 @@ npm run build
 npx playwright test
 ```
 
-## DBマイグレーション
-
-```bash
-uv run alembic upgrade head
-```
-
 ## 補足
 
-- 既存HTMLルート（`/`, `/lists/...`, `/s/...`）は引き続き利用可能です。
-- SPA導線を利用する場合は `http://127.0.0.1:4173` を開いてください。
+- SPA導線は `http://127.0.0.1:4173` を利用してください。
