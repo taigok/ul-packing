@@ -10,6 +10,14 @@ def test_list_api_crud_and_share_flow(client, session) -> None:
     assert create_list.status_code == 200
     list_id = create_list.json()["data"]["id"]
 
+    update_list = client.patch(
+        f"/api/v1/lists/{list_id}",
+        json={"title": "API List Updated", "description": "patched"},
+    )
+    assert update_list.status_code == 200
+    assert update_list.json()["data"]["title"] == "API List Updated"
+    assert update_list.json()["data"]["description"] == "patched"
+
     add_item = client.post(
         f"/api/v1/lists/{list_id}/items",
         json={

@@ -93,6 +93,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8000 npm run dev -- --host 127.0.0.1 --port 4
 
 - `GET /api/v1/lists`
 - `POST /api/v1/lists`
+- `PATCH /api/v1/lists/{list_id}`
 - `GET /api/v1/lists/{list_id}`
 - `POST /api/v1/lists/{list_id}/items`
 - `PATCH /api/v1/lists/{list_id}/items/{item_id}`

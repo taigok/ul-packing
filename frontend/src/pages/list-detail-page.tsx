@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CopyIcon, EllipsisVerticalIcon, PencilIcon, TrashIcon } from 'lucide-react'
+import { Cell, Label, Pie, PieChart } from 'recharts'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -48,12 +49,26 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
 import { ApiError, api } from '@/lib/api'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
 import type { GearItem, Unit } from '@/lib/types'
 
 const mutationErrorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback
+
+const weightChartConfig = {
+  base: { label: 'ベース', color: 'var(--chart-1)' },
+  consumable: { label: '消耗品', color: 'var(--chart-2)' },
+  worn: { label: '着用', color: 'var(--chart-3)' },
+} satisfies ChartConfig
 
 export function ListDetailPage() {
   const { listId } = useParams<{ listId: string }>()
@@ -131,15 +146,49 @@ export function ListDetailPage() {
     { title: '着用', weight: list.summary.worn_weight_g },
     { title: '合計', weight: list.summary.total_pack_g },
   ] as const
+  const kindChartData = [
+    { kind: 'base', label: 'ベース', weight: list.summary.base_weight_g, fill: 'var(--color-base)' },
+    { kind: 'consumable', label: '消耗品', weight: list.summary.consumable_weight_g, fill: 'var(--color-consumable)' },
+    { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
+  ] as const
+  const renderPieLabel = (props: {
+    cx?: number
+    cy?: number
+    midAngle?: number
+    outerRadius?: number
+    index?: number
+  }) => {
+    const { cx = 0, cy = 0, midAngle = 0, outerRadius = 0, index = 0 } = props
+    const item = kindChartData[index]
+    if (!item) return null
+
+    const radius = outerRadius + 14
+    const radian = Math.PI / 180
+    const x = cx + radius * Math.cos(-midAngle * radian)
+    const y = cy + radius * Math.sin(-midAngle * radian)
+
+    return (
+      <text
+        x={x}
+        y={y}
+        fill={item.fill}
+        textAnchor={x > cx ? 'start' : 'end'}
+        dominantBaseline="central"
+        className="text-[11px] font-medium"
+      >
+        {item.label}
+      </text>
+    )
+  }
 
   return (
-    <div className="grid gap-6">
-      <Card>
-        <CardHeader>
+    <div className="grid gap-4">
+      <Card className="gap-4 py-4">
+        <CardHeader className="px-4">
           <CardTitle>{list.title}</CardTitle>
           <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
         </CardHeader>
-        <CardContent className="flex flex-wrap items-center gap-3">
+        <CardContent className="flex flex-wrap items-center gap-2 px-4">
           <div className="w-[140px]">
             <Select
               value={list.unit}
@@ -193,24 +242,89 @@ export function ListDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {summaryCards.map((card) => (
-          <Card key={card.title}>
-            <CardHeader>
-              <CardTitle className="text-sm">{card.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-xl font-semibold">
-              {formatWeight(card.weight, list.unit)}
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-3 xl:grid-cols-[2fr_1fr]">
+        <div className="grid gap-4 md:grid-cols-2">
+          {summaryCards.map((card) => (
+            <Card key={card.title} className="gap-2 py-3">
+              <CardHeader className="px-4">
+                <CardTitle className="text-sm">{card.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 text-lg font-semibold">
+                {formatWeight(card.weight, list.unit)}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card className="gap-2 py-3">
+          <CardHeader className="px-4">
+            <CardTitle>重量内訳グラフ</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4">
+            <ChartContainer config={weightChartConfig} className="aspect-auto h-[220px] w-full">
+              <PieChart margin={{ top: 8, right: 40, bottom: 8, left: 40 }}>
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Pie
+                  data={kindChartData}
+                  dataKey="weight"
+                  nameKey="label"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={34}
+                  outerRadius={62}
+                  paddingAngle={2}
+                  labelLine={false}
+                  label={renderPieLabel}
+                >
+                  {kindChartData.map((entry) => (
+                    <Cell key={entry.kind} fill={entry.fill} />
+                  ))}
+                  <Label
+                    content={({ viewBox }) => {
+                      if (!viewBox || !('cx' in viewBox) || !('cy' in viewBox)) return null
+
+                      const cx = Number(viewBox.cx)
+                      const cy = Number(viewBox.cy)
+                      if (!Number.isFinite(cx) || !Number.isFinite(cy)) return null
+
+                      return (
+                        <g className="select-none">
+                          <text
+                            x={cx}
+                            y={cy - 9}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="fill-muted-foreground text-[10px]"
+                          >
+                            総重量
+                          </text>
+                          <text
+                            x={cx}
+                            y={cy + 11}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="fill-foreground text-[12px] font-semibold"
+                          >
+                            {formatWeight(list.summary.total_pack_g, list.unit)}
+                          </text>
+                        </g>
+                      )
+                    }}
+                  />
+                </Pie>
+                <ChartLegend
+                  content={<ChartLegendContent nameKey="kind" />}
+                />
+              </PieChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="gap-3 py-4">
+        <CardHeader className="px-4">
           <CardTitle>アイテム追加</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4">
           <ItemFormFields
             submitLabel="アイテム追加"
             isSubmitting={createItemMutation.isPending}
@@ -221,12 +335,12 @@ export function ListDetailPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="gap-3 py-4">
+        <CardHeader className="px-4">
           <CardTitle>アイテム一覧</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
+        <CardContent className="px-4">
+          <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
             <TableHeader>
               <TableRow>
                 <TableHead>名前</TableHead>
