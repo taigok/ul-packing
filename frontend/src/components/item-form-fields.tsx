@@ -61,13 +61,13 @@ export function ItemFormFields({ defaultValue, isSubmitting, submitLabel, onSubm
       })}
     >
       <div className="grid gap-2">
-        <Label htmlFor="name">Name</Label>
-        <Input id="name" {...register('name', { required: true, maxLength: 120 })} placeholder="Tent" />
-        {errors.name ? <p className="text-sm text-destructive">Name is required.</p> : null}
+        <Label htmlFor="name">名前</Label>
+        <Input id="name" {...register('name', { required: true, maxLength: 120 })} placeholder="テント" />
+        {errors.name ? <p className="text-sm text-destructive">名前は必須です。</p> : null}
       </div>
       <div className="grid gap-2 md:grid-cols-3 md:gap-3">
         <div className="grid gap-2">
-          <Label>Category</Label>
+          <Label>カテゴリ</Label>
           <Controller
             name="category"
             control={control}
@@ -88,18 +88,18 @@ export function ItemFormFields({ defaultValue, isSubmitting, submitLabel, onSubm
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="weight_grams">Weight (g)</Label>
+          <Label htmlFor="weight_grams">重量 (g)</Label>
           <Input id="weight_grams" type="number" min={1} {...register('weight_grams', { min: 1, required: true, valueAsNumber: true })} />
-          {errors.weight_grams ? <p className="text-sm text-destructive">Weight must be {'>= 1'}.</p> : null}
+          {errors.weight_grams ? <p className="text-sm text-destructive">重量は1以上で入力してください。</p> : null}
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="quantity">Qty</Label>
+          <Label htmlFor="quantity">個数</Label>
           <Input id="quantity" type="number" min={1} {...register('quantity', { min: 1, required: true, valueAsNumber: true })} />
-          {errors.quantity ? <p className="text-sm text-destructive">Quantity must be {'>= 1'}.</p> : null}
+          {errors.quantity ? <p className="text-sm text-destructive">個数は1以上で入力してください。</p> : null}
         </div>
       </div>
       <div className="grid gap-2">
-        <Label>Kind</Label>
+        <Label>種別</Label>
         <Controller
           name="kind"
           control={control}
@@ -120,11 +120,11 @@ export function ItemFormFields({ defaultValue, isSubmitting, submitLabel, onSubm
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes">メモ</Label>
         <Textarea id="notes" {...register('notes', { maxLength: 2000 })} />
       </div>
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? 'Saving...' : submitLabel}
+        {isSubmitting ? '保存中...' : submitLabel}
       </Button>
     </form>
   )

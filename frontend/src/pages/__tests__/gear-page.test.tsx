@@ -46,7 +46,7 @@ describe('GearPage', () => {
 
     renderPage()
 
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
+    expect(screen.getByText('読み込み中...')).toBeInTheDocument()
   })
 
   it('shows error state', async () => {
@@ -54,7 +54,7 @@ describe('GearPage', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Failed to load gear items.')).toBeInTheDocument()
+    expect(await screen.findByText('ギア一覧の読み込みに失敗しました。')).toBeInTheDocument()
   })
 
   it('shows table data with open list links', async () => {
@@ -78,6 +78,6 @@ describe('GearPage', () => {
     expect(await screen.findByText('Tent')).toBeInTheDocument()
     expect(screen.getByText('Yari 2D')).toBeInTheDocument()
     expect(screen.getByText('800 g')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Open List' })).toHaveAttribute('href', '/lists/list-1')
+    expect(screen.getByRole('link', { name: 'リストを開く' })).toHaveAttribute('href', '/lists/list-1')
   })
 })

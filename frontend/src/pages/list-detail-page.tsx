@@ -49,7 +49,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ApiError, api } from '@/lib/api'
-import { formatWeight, kindLabel } from '@/lib/format'
+import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
 import type { GearItem, Unit } from '@/lib/types'
 
 const mutationErrorMessage = (error: unknown, fallback: string) =>
@@ -74,9 +74,9 @@ export function ListDetailPage() {
     mutationFn: (payload: ItemFormValue) => api.createItem(listId ?? '', payload),
     onSuccess: async () => {
       await invalidateListQuery()
-      toast.success('Item added')
+      toast.success('アイテムを追加しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to add item')),
+    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの追加に失敗しました')),
   })
 
   const updateItemMutation = useMutation({
@@ -85,18 +85,18 @@ export function ListDetailPage() {
     onSuccess: async () => {
       await invalidateListQuery()
       setEditingItem(null)
-      toast.success('Item updated')
+      toast.success('アイテムを更新しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to update item')),
+    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの更新に失敗しました')),
   })
 
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) => api.deleteItem(listId ?? '', itemId),
     onSuccess: async () => {
       await invalidateListQuery()
-      toast.success('Item deleted')
+      toast.success('アイテムを削除しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to delete item')),
+    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの削除に失敗しました')),
   })
 
   const setUnitMutation = useMutation({
@@ -104,16 +104,16 @@ export function ListDetailPage() {
     onSuccess: async () => {
       await invalidateListQuery()
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to update unit')),
+    onError: (error) => toast.error(mutationErrorMessage(error, '単位の更新に失敗しました')),
   })
 
   const regenerateShareMutation = useMutation({
     mutationFn: () => api.regenerateShareToken(listId ?? ''),
     onSuccess: async () => {
       await invalidateListQuery()
-      toast.success('Share token regenerated')
+      toast.success('共有トークンを再生成しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'Failed to regenerate token')),
+    onError: (error) => toast.error(mutationErrorMessage(error, 'トークン再生成に失敗しました')),
   })
 
   const shareUrl = useMemo(() => {
@@ -121,15 +121,15 @@ export function ListDetailPage() {
     return `${window.location.origin}/s/${listQuery.data.share_token}`
   }, [listQuery.data?.share_token])
 
-  if (listQuery.isLoading) return <p>Loading...</p>
-  if (listQuery.isError || !listQuery.data) return <p className="text-destructive">List not found.</p>
+  if (listQuery.isLoading) return <p>読み込み中...</p>
+  if (listQuery.isError || !listQuery.data) return <p className="text-destructive">リストが見つかりません。</p>
 
   const list = listQuery.data
   const summaryCards = [
-    { title: 'Base', weight: list.summary.base_weight_g },
-    { title: 'Consumable', weight: list.summary.consumable_weight_g },
-    { title: 'Worn', weight: list.summary.worn_weight_g },
-    { title: 'Total', weight: list.summary.total_pack_g },
+    { title: 'ベース', weight: list.summary.base_weight_g },
+    { title: '消耗品', weight: list.summary.consumable_weight_g },
+    { title: '着用', weight: list.summary.worn_weight_g },
+    { title: '合計', weight: list.summary.total_pack_g },
   ] as const
 
   return (
@@ -137,7 +137,7 @@ export function ListDetailPage() {
       <Card>
         <CardHeader>
           <CardTitle>{list.title}</CardTitle>
-          <p className="text-sm text-muted-foreground">{list.description || 'No description'}</p>
+          <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
         </CardHeader>
         <CardContent className="flex flex-wrap items-center gap-3">
           <div className="w-[140px]">
@@ -148,11 +148,11 @@ export function ListDetailPage() {
               }}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Unit" />
+                <SelectValue placeholder="単位" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="g">Gram</SelectItem>
-                <SelectItem value="oz">Ounce</SelectItem>
+                <SelectItem value="g">グラム</SelectItem>
+                <SelectItem value="oz">オンス</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -160,32 +160,32 @@ export function ListDetailPage() {
             variant="outline"
             onClick={() => {
               if (!shareUrl) return
-              navigator.clipboard.writeText(shareUrl).then(() => toast.success('Share URL copied'))
+              navigator.clipboard.writeText(shareUrl).then(() => toast.success('共有URLをコピーしました'))
             }}
           >
             <CopyIcon className="mr-2 size-4" />
-            Copy share URL
+            共有URLをコピー
           </Button>
           <Button asChild variant="outline">
             <a href={shareUrl} target="_blank" rel="noreferrer">
-              Open shared page
+              共有ページを開く
             </a>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">Regenerate token</Button>
+              <Button variant="destructive">トークン再生成</Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Regenerate share token?</AlertDialogTitle>
+                <AlertDialogTitle>共有トークンを再生成しますか？</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Old share URL will stop working immediately.
+                  既存の共有URLはすぐに使えなくなります。
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>キャンセル</AlertDialogCancel>
                 <AlertDialogAction onClick={() => void regenerateShareMutation.mutateAsync()}>
-                  Regenerate
+                  再生成
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -208,11 +208,11 @@ export function ListDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Add Item</CardTitle>
+          <CardTitle>アイテム追加</CardTitle>
         </CardHeader>
         <CardContent>
           <ItemFormFields
-            submitLabel="Add Item"
+            submitLabel="アイテム追加"
             isSubmitting={createItemMutation.isPending}
             onSubmit={async (values) => {
               await createItemMutation.mutateAsync(values)
@@ -223,25 +223,27 @@ export function ListDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Items</CardTitle>
+          <CardTitle>アイテム一覧</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead>Weight</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead className="w-[90px]">Action</TableHead>
+                <TableHead>名前</TableHead>
+                <TableHead>カテゴリ</TableHead>
+                <TableHead>種別</TableHead>
+                <TableHead>重量</TableHead>
+                <TableHead>個数</TableHead>
+                <TableHead className="w-[90px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {list.items.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
                   </TableCell>
@@ -257,14 +259,14 @@ export function ListDetailPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => setEditingItem(item)}>
                           <PencilIcon className="mr-2 size-4" />
-                          Edit
+                          編集
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive"
                           onClick={() => void deleteItemMutation.mutateAsync(item.id)}
                         >
                           <TrashIcon className="mr-2 size-4" />
-                          Delete
+                          削除
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -282,13 +284,13 @@ export function ListDetailPage() {
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit item</DialogTitle>
-            <DialogDescription>Update item fields and save changes.</DialogDescription>
+            <DialogTitle>アイテム編集</DialogTitle>
+            <DialogDescription>項目を更新して保存します。</DialogDescription>
           </DialogHeader>
           {editingItem ? (
             <ItemFormFields
               defaultValue={editingItem}
-              submitLabel="Update Item"
+              submitLabel="更新する"
               isSubmitting={updateItemMutation.isPending}
               onSubmit={async (values) => {
                 await updateItemMutation.mutateAsync({

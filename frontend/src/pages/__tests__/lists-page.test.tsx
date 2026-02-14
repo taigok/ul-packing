@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
 import { ListsPage } from '@/pages/lists-page'
@@ -91,8 +92,8 @@ describe('ListsPage', () => {
 
     expect(await screen.findByText('Tent')).toBeInTheDocument()
     expect(screen.getAllByText('Yari 2D')).toHaveLength(2)
-    expect(screen.getByRole('link', { name: 'Open List' })).toHaveAttribute('href', '/lists/list-1')
-    expect(screen.getByRole('button', { name: 'Create List' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'リストを開く' })).toHaveAttribute('href', '/lists/list-1')
+    expect(screen.getAllByRole('button', { name: '+ 新規' })).toHaveLength(2)
   })
 
   it('shows empty gear helper text', async () => {
@@ -101,8 +102,34 @@ describe('ListsPage', () => {
 
     renderPage()
 
-    expect(
-      await screen.findByText('No gear items yet. Use "Add Gear" to register your first item.'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('まだギアがありません。最初のギアを追加しましょう。')).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '最初のギアを追加' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: '最初のリストを作成' })).toBeInTheDocument()
+  })
+
+  it('opens create list dialog from packing lists card action', async () => {
+    const user = userEvent.setup()
+    mockedGetGearItems.mockResolvedValue([])
+    mockedGetLists.mockResolvedValue([])
+
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '最初のリストを作成' }))
+
+    expect(screen.getByRole('heading', { name: 'パッキングリストを作成' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'リストを作成' })).toBeInTheDocument()
+  })
+
+  it('opens add gear dialog from my gear empty state action', async () => {
+    const user = userEvent.setup()
+    mockedGetGearItems.mockResolvedValue([])
+    mockedGetLists.mockResolvedValue([])
+
+    renderPage()
+
+    await user.click(await screen.findByRole('button', { name: '最初のギアを追加' }))
+
+    expect(screen.getByRole('heading', { name: 'ギアを追加' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'ギア追加' })).toBeInTheDocument()
   })
 })

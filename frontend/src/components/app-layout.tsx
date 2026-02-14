@@ -12,7 +12,7 @@ export function AppLayout() {
               UL Packing
             </Link>
             <Link to="/gear" className="text-sm text-muted-foreground hover:text-foreground">
-              My Gear
+              マイギア
             </Link>
           </div>
           <Badge variant="secondary">MVP</Badge>
