@@ -1,8 +1,33 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, useDroppable } from '@dnd-kit/core'
+import {
+  DndContext,
+  DragOverlay,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  useDroppable,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
-import { CopyIcon, EllipsisVerticalIcon, PencilIcon, PlusIcon, TrashIcon } from 'lucide-react'
+import {
+  CopyIcon,
+  EllipsisVerticalIcon,
+  GripVerticalIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
+} from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 
@@ -60,28 +85,134 @@ import {
 import { Pie, PieChart } from 'recharts'
 import { ApiError, api } from '@/lib/api'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
-import type { GearItem, GearListItem, Unit } from '@/lib/types'
+import type { Category, GearItem, GearListItem, Unit } from '@/lib/types'
 
 const mutationErrorMessage = (error: unknown, fallback: string) =>
   error instanceof ApiError ? error.message : fallback
 
-function DroppableItemList({ children }: { children: React.ReactNode }) {
-  const { isOver, setNodeRef } = useDroppable({ id: 'packing-list-drop' })
+function DroppableItemList({
+  children,
+  isOver,
+  isEmpty,
+}: {
+  children: React.ReactNode
+  isOver: boolean
+  isEmpty: boolean
+}) {
+  const { setNodeRef } = useDroppable({ id: 'packing-list-drop' })
 
   return (
     <div
       ref={setNodeRef}
-      className={`rounded-lg transition-colors ${isOver ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+      className={`rounded-lg transition-all duration-200 ${
+        isOver
+          ? 'ring-2 ring-primary ring-offset-2 bg-primary/5'
+          : ''
+      }`}
     >
       {children}
+      {isEmpty && (
+        <div
+          className={`mx-6 mb-6 flex flex-col items-center justify-center rounded-lg border-2 border-dashed py-12 text-center transition-colors ${
+            isOver
+              ? 'border-primary bg-primary/10 text-primary'
+              : 'border-muted-foreground/25 text-muted-foreground'
+          }`}
+        >
+          <PlusIcon className={`mb-2 size-8 ${isOver ? 'text-primary' : 'text-muted-foreground/50'}`} />
+          <p className="text-sm font-medium">
+            {isOver ? 'ここにドロップして追加' : 'ギアパネルからドラッグして追加'}
+          </p>
+        </div>
+      )}
     </div>
   )
 }
 
-function DragOverlayContent({ item }: { item: GearListItem }) {
+function SortableItemRow({
+  item,
+  unit,
+  onEdit,
+  onDelete,
+}: {
+  item: GearItem
+  unit: Unit
+  onEdit: (item: GearItem) => void
+  onDelete: (itemId: string) => void
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className={isDragging ? 'opacity-40 bg-muted' : ''}
+    >
+      <TableCell className="w-[40px] px-2">
+        <button
+          type="button"
+          className="cursor-grab touch-none rounded p-1 text-muted-foreground hover:bg-accent hover:text-foreground active:cursor-grabbing"
+          {...listeners}
+          {...attributes}
+        >
+          <GripVerticalIcon className="size-4" />
+        </button>
+      </TableCell>
+      <TableCell className="font-medium">{item.name}</TableCell>
+      <TableCell>
+        <Badge variant="outline">{categoryLabel(item.category)}</Badge>
+      </TableCell>
+      <TableCell>
+        <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
+      </TableCell>
+      <TableCell>{formatWeight(item.weight_grams * item.quantity, unit)}</TableCell>
+      <TableCell>{item.quantity}</TableCell>
+      <TableCell>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm">
+              <EllipsisVerticalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onEdit(item)}>
+              <PencilIcon className="mr-2 size-4" />
+              編集
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive"
+              onClick={() => onDelete(item.id)}
+            >
+              <TrashIcon className="mr-2 size-4" />
+              削除
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+function DragOverlayContent({ item, type }: { item: { name: string; category: Category }; type: 'gear' | 'reorder' }) {
   return (
     <div className="flex items-center gap-2 rounded-md border bg-card p-2 text-sm shadow-lg">
-      <PlusIcon className="size-4 text-primary" />
+      {type === 'gear' ? (
+        <PlusIcon className="size-4 text-primary" />
+      ) : (
+        <GripVerticalIcon className="size-4 text-muted-foreground" />
+      )}
       <span className="font-medium">{item.name}</span>
       <Badge variant="outline" className="text-xs">
         {categoryLabel(item.category)}
@@ -96,13 +227,17 @@ export function ListDetailPage() {
   const [editingItem, setEditingItem] = useState<GearItem | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeGearItem, setActiveGearItem] = useState<GearListItem | null>(null)
+  const [activeListItem, setActiveListItem] = useState<GearItem | null>(null)
+  const [isOverDropZone, setIsOverDropZone] = useState(false)
   const listQueryKey = ['list', listId] as const
   const invalidateListQuery = async () => {
     await queryClient.invalidateQueries({ queryKey: listQueryKey })
   }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   const listQuery = useQuery({
@@ -139,6 +274,15 @@ export function ListDetailPage() {
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの削除に失敗しました')),
   })
+
+  const reorderMutation = useMutation({
+    mutationFn: (itemIds: string[]) => api.reorderItems(listId ?? '', itemIds),
+    onError: (error) => {
+      toast.error(mutationErrorMessage(error, '並び替えに失敗しました'))
+      void invalidateListQuery()
+    },
+  })
+
   const setUnitMutation = useMutation({
     mutationFn: (unit: Unit) => api.setUnit(listId ?? '', unit),
     onSuccess: async () => {
@@ -165,25 +309,65 @@ export function ListDetailPage() {
     const gearItem = event.active.data.current?.gearItem as GearListItem | undefined
     if (gearItem) {
       setActiveGearItem(gearItem)
+      return
+    }
+
+    // It's a list item being reordered
+    const item = listQuery.data?.items.find((i) => i.id === event.active.id)
+    if (item) {
+      setActiveListItem(item)
     }
   }
 
+  const handleDragOver = (event: { over: { id: string | number } | null }) => {
+    setIsOverDropZone(event.over?.id === 'packing-list-drop')
+  }
+
   const handleDragEnd = (event: DragEndEvent) => {
+    const wasGearDrag = Boolean(activeGearItem)
     setActiveGearItem(null)
+    setActiveListItem(null)
+    setIsOverDropZone(false)
+
     const { active, over } = event
-    if (!over || over.id !== 'packing-list-drop') return
+    if (!over) return
 
-    const gearItem = active.data.current?.gearItem as GearListItem | undefined
-    if (!gearItem) return
+    // Gear item dropped onto the packing list
+    if (wasGearDrag) {
+      if (over.id !== 'packing-list-drop') return
+      const gearItem = active.data.current?.gearItem as GearListItem | undefined
+      if (!gearItem) return
 
-    createItemMutation.mutate({
-      name: gearItem.name,
-      category: gearItem.category,
-      weight_grams: gearItem.weight_grams,
-      quantity: gearItem.quantity,
-      kind: gearItem.kind,
-      notes: gearItem.notes,
+      createItemMutation.mutate({
+        name: gearItem.name,
+        category: gearItem.category,
+        weight_grams: gearItem.weight_grams,
+        quantity: gearItem.quantity,
+        kind: gearItem.kind,
+        notes: gearItem.notes,
+      })
+      return
+    }
+
+    // List item reorder
+    if (active.id === over.id) return
+    const items = listQuery.data?.items
+    if (!items) return
+
+    const oldIndex = items.findIndex((i) => i.id === active.id)
+    const newIndex = items.findIndex((i) => i.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = arrayMove(items, oldIndex, newIndex)
+    const newItemIds = reordered.map((i) => i.id)
+
+    // Optimistic update
+    queryClient.setQueryData(listQueryKey, (old: typeof listQuery.data) => {
+      if (!old) return old
+      return { ...old, items: reordered }
     })
+
+    reorderMutation.mutate(newItemIds)
   }
 
   if (listQuery.isLoading) return <p>読み込み中...</p>
@@ -205,9 +389,15 @@ export function ListDetailPage() {
     { kind: 'base', label: 'ベース', weight: list.summary.base_weight_g, fill: 'var(--color-base)' },
     { kind: 'consumable', label: '消耗品', weight: list.summary.consumable_weight_g, fill: 'var(--color-consumable)' },
     { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
-  ] as const
+  ]
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
       <div className="flex gap-6">
         {/* Gear Sidebar */}
         {sidebarOpen && (
@@ -332,73 +522,56 @@ export function ListDetailPage() {
               </CardContent>
             </Card>
 
-            <DroppableItemList>
+            <DroppableItemList isOver={isOverDropZone && Boolean(activeGearItem)} isEmpty={list.items.length === 0}>
               <Card>
                 <CardHeader>
                   <CardTitle>アイテム一覧</CardTitle>
                   <p className="text-xs text-muted-foreground">
-                    左のギアパネルからドラッグ＆ドロップでアイテムを追加できます
+                    ドラッグで並び替え・ギアパネルからドロップで追加できます
                   </p>
                 </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>名前</TableHead>
-                        <TableHead>カテゴリ</TableHead>
-                        <TableHead>種別</TableHead>
-                        <TableHead>重量</TableHead>
-                        <TableHead>個数</TableHead>
-                        <TableHead className="w-[90px]">操作</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {list.items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{categoryLabel(item.category)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
-                          </TableCell>
-                          <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon-sm">
-                                  <EllipsisVerticalIcon className="size-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                                  <PencilIcon className="mr-2 size-4" />
-                                  編集
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => void deleteItemMutation.mutateAsync(item.id)}
-                                >
-                                  <TrashIcon className="mr-2 size-4" />
-                                  削除
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
+                {list.items.length > 0 && (
+                  <CardContent>
+                    <SortableContext items={list.items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[40px] px-2" />
+                            <TableHead>名前</TableHead>
+                            <TableHead>カテゴリ</TableHead>
+                            <TableHead>種別</TableHead>
+                            <TableHead>重量</TableHead>
+                            <TableHead>個数</TableHead>
+                            <TableHead className="w-[90px]">操作</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {list.items.map((item) => (
+                            <SortableItemRow
+                              key={item.id}
+                              item={item}
+                              unit={list.unit}
+                              onEdit={setEditingItem}
+                              onDelete={(itemId) => void deleteItemMutation.mutateAsync(itemId)}
+                            />
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </SortableContext>
+                  </CardContent>
+                )}
               </Card>
             </DroppableItemList>
           </div>
         </div>
       </div>
 
-      <DragOverlay>
-        {activeGearItem ? <DragOverlayContent item={activeGearItem} /> : null}
+      <DragOverlay dropAnimation={{ duration: 200, easing: 'ease' }}>
+        {activeGearItem ? (
+          <DragOverlayContent item={activeGearItem} type="gear" />
+        ) : activeListItem ? (
+          <DragOverlayContent item={activeListItem} type="reorder" />
+        ) : null}
       </DragOverlay>
 
       <Dialog open={Boolean(editingItem)} onOpenChange={(open) => !open && setEditingItem(null)}>

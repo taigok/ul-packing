@@ -82,6 +82,8 @@ export const api = {
     requestWithBody<PackingListDetail>(listPath(listId, `/items/${itemId}`), 'PATCH', payload),
   deleteItem: (listId: string, itemId: string) =>
     request<PackingListDetail>(listPath(listId, `/items/${itemId}`), { method: 'DELETE' }),
+  reorderItems: (listId: string, itemIds: string[]) =>
+    requestWithBody<PackingListDetail>(listPath(listId, '/items/reorder'), 'PATCH', { item_ids: itemIds }),
   setUnit: (listId: string, unit: Unit) =>
     requestWithBody<PackingListDetail>(listPath(listId, '/unit'), 'PATCH', { unit }),
   getShared: (token: string) => request<SharedPackingList>(`/api/v1/shared/${token}`),

@@ -107,3 +107,7 @@ class UpdateItemIn(CreateItemIn):
 
 class SetUnitIn(BaseModel):
     unit: Unit
+
+
+class ReorderItemsIn(BaseModel):
+    item_ids: list[str] = Field(min_length=1)

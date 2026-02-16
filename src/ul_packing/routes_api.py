@@ -14,6 +14,7 @@ from ul_packing.schemas_api import (
     GearItemOut,
     PackingListDetailOut,
     PackingListListItemOut,
+    ReorderItemsIn,
     SetUnitIn,
     SharedPackingListOut,
     SummaryOut,
@@ -247,6 +248,22 @@ def delete_item(list_id: str, item_id: str, db: Session = Depends(get_db)):
     db.delete(item)
     _commit_and_refresh_list(db, packing_list)
 
+    return {"data": _to_list_data(packing_list, include_items=True)}
+
+
+@router.patch("/lists/{list_id}/items/reorder")
+def reorder_items(list_id: str, payload: ReorderItemsIn, db: Session = Depends(get_db)):
+    packing_list = _get_list_or_404(db, list_id)
+    existing_ids = {item.id for item in packing_list.items}
+
+    if set(payload.item_ids) != existing_ids:
+        return _api_error(422, "validation_error", "item_ids must contain exactly all item IDs in the list")
+
+    item_map = {item.id: item for item in packing_list.items}
+    for idx, item_id in enumerate(payload.item_ids):
+        item_map[item_id].sort_order = idx
+
+    _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=True)}
 
 
