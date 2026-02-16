@@ -11,3 +11,4 @@ data/*.db
 playwright-report/
 test-results/
 node_modules/
+.DS_Store
