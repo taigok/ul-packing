@@ -249,7 +249,8 @@ describe('GearPage', () => {
 
     renderPage()
 
-    await user.click(await screen.findByRole('button', { name: '削除' }))
+    await user.click(await screen.findByRole('button', { name: 'Tentを削除' }))
+    await user.click(screen.getByRole('button', { name: '削除する' }))
 
     await waitFor(() => {
       expect(mockedDeleteItem).toHaveBeenCalledWith('list-1', 'item-1')

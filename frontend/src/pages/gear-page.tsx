@@ -1,7 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Trash2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -92,6 +103,7 @@ export function GearPage() {
   const [editingDraft, setEditingDraft] = useState<ItemDraft | null>(null)
   const [editingField, setEditingField] = useState<EditField>('name')
   const [editingRowError, setEditingRowError] = useState<string | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<GearListItem | null>(null)
   const editingRowRef = useRef<HTMLTableRowElement | null>(null)
   const categoryTriggerRef = useRef<HTMLButtonElement | null>(null)
   const kindTriggerRef = useRef<HTMLButtonElement | null>(null)
@@ -147,6 +159,7 @@ export function GearPage() {
     mutationFn: ({ itemId, listId }: { itemId: string; listId: string }) => api.deleteItem(listId, itemId),
     onSuccess: async () => {
       await invalidateQueries()
+      setItemToDelete(null)
       toast.success('ギアを削除しました')
     },
     onError: (error) => toast.error(mutationErrorMessage(error, 'ギアの削除に失敗しました')),
@@ -193,7 +206,9 @@ export function GearPage() {
                 <TableHead>重量</TableHead>
                 <TableHead>個数</TableHead>
                 <TableHead>メモ</TableHead>
-                <TableHead className="w-[160px]">操作</TableHead>
+                <TableHead className="w-[160px]">
+                  <span className="sr-only">削除</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -471,15 +486,17 @@ export function GearPage() {
                       </TableCell>
                       <TableCell className="space-x-2">
                         <Button
-                          variant="outline"
-                          size="sm"
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`${item.name}を削除`}
+                          className="text-muted-foreground hover:text-foreground"
                           disabled={Boolean(editingItemId) || isCreating || isBusy}
                           onClick={(event) => {
                             event.stopPropagation()
-                            deleteMutation.mutate({ itemId: item.id, listId: item.list_id })
+                            setItemToDelete(item)
                           }}
                         >
-                          削除
+                          <Trash2Icon className="size-4" />
                         </Button>
                       </TableCell>
                     </>
@@ -497,6 +514,35 @@ export function GearPage() {
           </Table>
         ) : null}
       </CardContent>
+
+      <AlertDialog
+        open={Boolean(itemToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) setItemToDelete(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>ギアを削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              {itemToDelete ? `「${itemToDelete.name}」を削除します。この操作は取り消せません。` : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending || !itemToDelete}
+              onClick={(event) => {
+                event.preventDefault()
+                if (!itemToDelete) return
+                deleteMutation.mutate({ itemId: itemToDelete.id, listId: itemToDelete.list_id })
+              }}
+            >
+              削除する
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

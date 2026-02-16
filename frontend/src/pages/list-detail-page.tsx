@@ -59,6 +59,7 @@ import {
 } from '@/components/ui/chart'
 import { Pie, PieChart } from 'recharts'
 import { ApiError, api } from '@/lib/api'
+import { categoryOptions } from '@/lib/constants'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
 import type { GearItem, GearListItem, Unit } from '@/lib/types'
 
@@ -200,6 +201,11 @@ export function ListDetailPage() {
     { kind: 'consumable', label: '消耗品', weight: list.summary.consumable_weight_g, fill: 'var(--color-consumable)' },
     { kind: 'worn', label: '着用', weight: list.summary.worn_weight_g, fill: 'var(--color-worn)' },
   ] as const
+  const categorizedItems = categoryOptions.map((category) => ({
+    ...category,
+    items: list.items.filter((item) => item.category === category.value),
+  }))
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex gap-6">
@@ -285,55 +291,69 @@ export function ListDetailPage() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>名前</TableHead>
-                        <TableHead>カテゴリ</TableHead>
-                        <TableHead>種別</TableHead>
-                        <TableHead>重量</TableHead>
-                        <TableHead>個数</TableHead>
-                        <TableHead className="w-[90px]">操作</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {list.items.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{categoryLabel(item.category)}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
-                          </TableCell>
-                          <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon-sm">
-                                  <EllipsisVerticalIcon className="size-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                                  <PencilIcon className="mr-2 size-4" />
-                                  編集
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => void deleteItemMutation.mutateAsync(item.id)}
-                                >
-                                  <TrashIcon className="mr-2 size-4" />
-                                  削除
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="grid gap-4">
+                    {categorizedItems.map((category) => (
+                      <section key={category.value} className="overflow-hidden border">
+                        <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
+                          <span className="text-sm font-medium">{category.label}</span>
+                          <Badge variant="outline">{category.items.length}件</Badge>
+                        </div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>名前</TableHead>
+                              <TableHead>種別</TableHead>
+                              <TableHead>重量</TableHead>
+                              <TableHead>個数</TableHead>
+                              <TableHead className="w-[90px]">操作</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {category.items.length === 0 ? (
+                              <TableRow>
+                                <TableCell className="text-muted-foreground" colSpan={5}>
+                                  このカテゴリにはまだアイテムがありません
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              category.items.map((item) => (
+                                <TableRow key={item.id}>
+                                  <TableCell className="font-medium">{item.name}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
+                                  </TableCell>
+                                  <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
+                                  <TableCell>{item.quantity}</TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon-sm">
+                                          <EllipsisVerticalIcon className="size-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                                          <PencilIcon className="mr-2 size-4" />
+                                          編集
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                          className="text-destructive"
+                                          onClick={() => void deleteItemMutation.mutateAsync(item.id)}
+                                        >
+                                          <TrashIcon className="mr-2 size-4" />
+                                          削除
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </section>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </DroppableItemList>
