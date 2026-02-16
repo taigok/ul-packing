@@ -11,3 +11,4 @@ data/*.db
 playwright-report/
 test-results/
 node_modules/
+src/ul_packing.egg-info/
