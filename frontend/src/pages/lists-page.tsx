@@ -46,8 +46,8 @@ export function ListsPage() {
 
   return (
     <div className="grid">
-      <Card className="gap-4 py-4">
-        <CardHeader className="flex flex-row items-center justify-between gap-3 px-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle>パッキングリスト</CardTitle>
           <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
             {hasLists ? (
@@ -71,7 +71,7 @@ export function ListsPage() {
             </DialogContent>
           </Dialog>
         </CardHeader>
-        <CardContent className="px-4">
+        <CardContent>
           {listQuery.isLoading ? <p>読み込み中...</p> : null}
           {listQuery.isError ? <p className="text-destructive">リストの読み込みに失敗しました。</p> : null}
           {listQuery.data?.length === 0 ? (
@@ -85,7 +85,7 @@ export function ListsPage() {
             </div>
           ) : null}
           {listQuery.data && listQuery.data.length > 0 ? (
-            <Table className="[&_th]:h-8 [&_th]:px-1.5 [&_td]:px-1.5 [&_td]:py-1.5">
+            <Table className="[&_td]:py-3">
               <TableHeader>
                 <TableRow>
                   <TableHead>タイトル</TableHead>
