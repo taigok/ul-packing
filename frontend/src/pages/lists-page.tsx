@@ -5,7 +5,6 @@ import { toast } from 'sonner'
 
 import { ListCreateForm } from '@/components/list-create-form'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -46,74 +45,72 @@ export function ListsPage() {
 
   return (
     <div className="grid">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-3">
-          <CardTitle>パッキングリスト</CardTitle>
-          <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
-            {hasLists ? (
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm">+ 新規</Button>
-              </DialogTrigger>
-            ) : null}
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>パッキングリストを作成</DialogTitle>
-                <DialogDescription>
-                  山行ごとのパッキングリストを作成します。
-                </DialogDescription>
-              </DialogHeader>
-              <ListCreateForm
-                isSubmitting={createListMutation.isPending}
-                onSubmit={async (values) => {
-                  await createListMutation.mutateAsync(values)
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {listQuery.isLoading ? <p>読み込み中...</p> : null}
-          {listQuery.isError ? <p className="text-destructive">リストの読み込みに失敗しました。</p> : null}
-          {listQuery.data?.length === 0 ? (
-            <div className="grid justify-items-center gap-3 py-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                まだパッキングリストがありません。最初のリストを作成しましょう。
-              </p>
-              <Button size="sm" onClick={() => setIsCreateListOpen(true)}>
-                最初のリストを作成
-              </Button>
-            </div>
+      <div className="mb-4 flex flex-row items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold tracking-tight">パッキングリスト</h1>
+        <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
+          {hasLists ? (
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">+ 新規</Button>
+            </DialogTrigger>
           ) : null}
-          {listQuery.data && listQuery.data.length > 0 ? (
-            <Table className="[&_td]:py-3">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>タイトル</TableHead>
-                  <TableHead>説明</TableHead>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>パッキングリストを作成</DialogTitle>
+              <DialogDescription>
+                山行ごとのパッキングリストを作成します。
+              </DialogDescription>
+            </DialogHeader>
+            <ListCreateForm
+              isSubmitting={createListMutation.isPending}
+              onSubmit={async (values) => {
+                await createListMutation.mutateAsync(values)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
+      <div>
+        {listQuery.isLoading ? <p>読み込み中...</p> : null}
+        {listQuery.isError ? <p className="text-destructive">リストの読み込みに失敗しました。</p> : null}
+        {listQuery.data?.length === 0 ? (
+          <div className="grid justify-items-center gap-3 py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              まだパッキングリストがありません。最初のリストを作成しましょう。
+            </p>
+            <Button size="sm" onClick={() => setIsCreateListOpen(true)}>
+              最初のリストを作成
+            </Button>
+          </div>
+        ) : null}
+        {listQuery.data && listQuery.data.length > 0 ? (
+          <Table className="[&_td]:py-3">
+            <TableHeader>
+              <TableRow>
+                <TableHead>タイトル</TableHead>
+                <TableHead>説明</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {listQuery.data.map((list) => (
+                <TableRow
+                  key={list.id}
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={() => navigate(`/lists/${list.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    navigate(`/lists/${list.id}`)
+                  }}
+                >
+                  <TableCell className="font-medium">{list.title}</TableCell>
+                  <TableCell>{list.description || '-'}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {listQuery.data.map((list) => (
-                  <TableRow
-                    key={list.id}
-                    tabIndex={0}
-                    className="cursor-pointer"
-                    onClick={() => navigate(`/lists/${list.id}`)}
-                    onKeyDown={(event) => {
-                      if (event.key !== 'Enter' && event.key !== ' ') return
-                      event.preventDefault()
-                      navigate(`/lists/${list.id}`)
-                    }}
-                  >
-                    <TableCell className="font-medium">{list.title}</TableCell>
-                    <TableCell>{list.description || '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : null}
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        ) : null}
+      </div>
     </div>
   )
 }

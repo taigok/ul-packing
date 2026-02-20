@@ -14,7 +14,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -182,11 +181,11 @@ export function GearPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>マイギア</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <>
+      <div className="mb-4">
+        <h1 className="text-2xl font-semibold tracking-tight">マイギア</h1>
+      </div>
+      <div>
         {gearItemsQuery.isLoading ? <p>読み込み中...</p> : null}
         {gearItemsQuery.isError ? (
           <p className="text-destructive">ギア一覧の読み込みに失敗しました。</p>
@@ -538,7 +537,7 @@ export function GearPage() {
             </TableBody>
           </Table>
         ) : null}
-      </CardContent>
+      </div>
 
       <AlertDialog
         open={Boolean(itemToDelete)}
@@ -568,6 +567,6 @@ export function GearPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   )
 }
