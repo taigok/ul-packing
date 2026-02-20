@@ -58,13 +58,10 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart'
 import { Pie, PieChart } from 'recharts'
-import { ApiError, api } from '@/lib/api'
+import { api, apiErrorMessage } from '@/lib/api'
 import { categoryOptions } from '@/lib/constants'
 import { categoryLabel, formatWeight, kindLabel } from '@/lib/format'
 import type { GearItem, GearListItem, Unit } from '@/lib/types'
-
-const mutationErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof ApiError ? error.message : fallback
 
 function DroppableItemList({ children }: { children: React.ReactNode }) {
   const { isOver, setNodeRef } = useDroppable({ id: 'packing-list-drop' })
@@ -117,7 +114,7 @@ export function ListDetailPage() {
       await invalidateListQuery()
       toast.success('アイテムを追加しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの追加に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, 'アイテムの追加に失敗しました')),
   })
 
   const updateItemMutation = useMutation({
@@ -128,7 +125,7 @@ export function ListDetailPage() {
       setEditingItem(null)
       toast.success('アイテムを更新しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの更新に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, 'アイテムの更新に失敗しました')),
   })
 
   const deleteItemMutation = useMutation({
@@ -137,7 +134,7 @@ export function ListDetailPage() {
       await invalidateListQuery()
       toast.success('アイテムを削除しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'アイテムの削除に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, 'アイテムの削除に失敗しました')),
   })
   const setUnitMutation = useMutation({
     mutationFn: (unit: Unit) => api.setUnit(listId ?? '', unit),
@@ -145,7 +142,7 @@ export function ListDetailPage() {
       await invalidateListQuery()
       toast.success('単位を更新しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, '単位の更新に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, '単位の更新に失敗しました')),
   })
   const regenerateShareMutation = useMutation({
     mutationFn: () => api.regenerateShareToken(listId ?? ''),
@@ -153,7 +150,7 @@ export function ListDetailPage() {
       await invalidateListQuery()
       toast.success('共有トークンを再生成しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, '共有トークンの再生成に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, '共有トークンの再生成に失敗しました')),
   })
 
   const handleDragStart = (event: DragStartEvent) => {

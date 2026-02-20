@@ -21,6 +21,9 @@ class ApiError extends Error {
   }
 }
 
+const apiErrorMessage = (error: unknown, fallback: string) =>
+  error instanceof ApiError ? error.message : fallback
+
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -90,3 +93,4 @@ export const api = {
 }
 
 export { ApiError }
+export { apiErrorMessage }

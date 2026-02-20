@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ApiError, api } from '@/lib/api'
+import { api, apiErrorMessage } from '@/lib/api'
 
 export function ListsPage() {
   const navigate = useNavigate()
@@ -36,10 +36,7 @@ export function ListsPage() {
       setIsCreateListOpen(false)
       navigate(`/lists/${list.id}`)
     },
-    onError: (error) => {
-      const message = error instanceof ApiError ? error.message : 'リストの作成に失敗しました'
-      toast.error(message)
-    },
+    onError: (error) => toast.error(apiErrorMessage(error, 'リストの作成に失敗しました')),
   })
   return (
     <div className="grid">

@@ -1,19 +1,30 @@
 import type { Category, ItemKind } from '@/lib/types'
 
-export const categoryOptions: Array<{ value: Category; label: string }> = [
-  { value: 'shelter', label: 'シェルター' },
-  { value: 'sleeping', label: 'スリーピング' },
-  { value: 'backpack', label: 'バックパック' },
-  { value: 'clothing', label: '衣類' },
-  { value: 'cooking', label: '調理' },
-  { value: 'food', label: '食料' },
-  { value: 'water', label: '水' },
-  { value: 'electronics', label: '電子機器' },
-  { value: 'other', label: 'その他' },
+type Option<T extends string> = {
+  value: T
+  label: string
+}
+
+const categoryEntries: Array<[Category, string]> = [
+  ['shelter', 'シェルター'],
+  ['sleeping', 'スリーピング'],
+  ['backpack', 'バックパック'],
+  ['clothing', '衣類'],
+  ['cooking', '調理'],
+  ['food', '食料'],
+  ['water', '水'],
+  ['electronics', '電子機器'],
+  ['other', 'その他'],
 ]
 
-export const itemKindOptions: Array<{ value: ItemKind; label: string }> = [
-  { value: 'base', label: 'ベース' },
-  { value: 'consumable', label: '消耗品' },
-  { value: 'worn', label: '着用' },
+const itemKindEntries: Array<[ItemKind, string]> = [
+  ['base', 'ベース'],
+  ['consumable', '消耗品'],
+  ['worn', '着用'],
 ]
+
+export const categoryLabels: Record<Category, string> = Object.fromEntries(categoryEntries) as Record<Category, string>
+export const itemKindLabels: Record<ItemKind, string> = Object.fromEntries(itemKindEntries) as Record<ItemKind, string>
+
+export const categoryOptions: Array<Option<Category>> = categoryEntries.map(([value, label]) => ({ value, label }))
+export const itemKindOptions: Array<Option<ItemKind>> = itemKindEntries.map(([value, label]) => ({ value, label }))

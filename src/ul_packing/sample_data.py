@@ -3,11 +3,9 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ul_packing.gear_inventory import GEAR_INVENTORY_DESCRIPTION, GEAR_INVENTORY_TITLE
 from ul_packing.models import Category, GearItem, ItemKind, PackingList
 from ul_packing.services import generate_share_token
-
-_GEAR_INVENTORY_TITLE = "マイギア一覧"
-_GEAR_INVENTORY_DESCRIPTION = "ギア直接登録用に自動作成されたリスト"
 
 _SAMPLE_GEAR_ITEMS: tuple[dict[str, object], ...] = (
     {"name": "DCFタープ", "category": Category.SHELTER, "weight_grams": 310, "quantity": 1, "kind": ItemKind.BASE, "notes": "ガイライン込み"},
@@ -43,16 +41,16 @@ def seed_sample_gear_inventory_data(db: Session) -> None:
     inventory = db.execute(
         select(PackingList)
         .where(
-            PackingList.title == _GEAR_INVENTORY_TITLE,
-            PackingList.description == _GEAR_INVENTORY_DESCRIPTION,
+            PackingList.title == GEAR_INVENTORY_TITLE,
+            PackingList.description == GEAR_INVENTORY_DESCRIPTION,
         )
         .order_by(PackingList.created_at.asc())
     ).scalars().first()
 
     if inventory is None:
         inventory = PackingList(
-            title=_GEAR_INVENTORY_TITLE,
-            description=_GEAR_INVENTORY_DESCRIPTION,
+            title=GEAR_INVENTORY_TITLE,
+            description=GEAR_INVENTORY_DESCRIPTION,
             share_token=generate_share_token(),
             is_shared=False,
         )

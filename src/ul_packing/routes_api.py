@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ul_packing.db import get_db
+from ul_packing.gear_inventory import GEAR_INVENTORY_DESCRIPTION, GEAR_INVENTORY_TITLE
 from ul_packing.models import GearItem, PackingList
 from ul_packing.schemas_api import (
     CreateItemIn,
@@ -23,9 +24,6 @@ from ul_packing.schemas_api import (
 from ul_packing.services import compute_summary, generate_share_token
 
 router = APIRouter(prefix="/api/v1", tags=["api"])
-
-_GEAR_INVENTORY_TITLE = "マイギア一覧"
-_GEAR_INVENTORY_DESCRIPTION = "ギア直接登録用に自動作成されたリスト"
 
 
 def _api_error(status_code: int, code: str, message: str, details: object | None = None) -> JSONResponse:
@@ -50,10 +48,6 @@ def _to_summary_out(packing_list: PackingList) -> SummaryOut:
         worn_weight_g=summary.worn_weight_g,
         total_pack_g=summary.total_pack_g,
     )
-
-
-def _to_item_out(item: GearItem) -> dict[str, object]:
-    return GearItemOut.model_validate(item).model_dump(mode="json")
 
 
 def _to_gear_list_item_out(item: GearItem, list_title: str) -> dict[str, object]:
@@ -105,12 +99,36 @@ def _commit_and_refresh_list(db: Session, packing_list: PackingList) -> None:
     db.refresh(packing_list)
 
 
+def _next_sort_order(db: Session, list_id: str) -> int:
+    max_order = db.execute(
+        select(GearItem.sort_order)
+        .where(GearItem.list_id == list_id)
+        .order_by(GearItem.sort_order.desc())
+    ).scalars().first()
+    return (max_order if max_order is not None else -1) + 1
+
+
+def _create_item_entity(list_id: str, payload: CreateItemIn, sort_order: int) -> GearItem:
+    item = GearItem(
+        list_id=list_id,
+        name="",
+        category=payload.category,
+        weight_grams=payload.weight_grams,
+        quantity=payload.quantity,
+        kind=payload.kind,
+        notes="",
+        sort_order=sort_order,
+    )
+    _apply_item_payload(item, payload)
+    return item
+
+
 def _get_or_create_gear_inventory_list(db: Session) -> PackingList:
     inventory = db.execute(
         select(PackingList)
         .where(
-            PackingList.title == _GEAR_INVENTORY_TITLE,
-            PackingList.description == _GEAR_INVENTORY_DESCRIPTION,
+            PackingList.title == GEAR_INVENTORY_TITLE,
+            PackingList.description == GEAR_INVENTORY_DESCRIPTION,
         )
         .order_by(PackingList.created_at.asc())
     ).scalars().first()
@@ -118,8 +136,8 @@ def _get_or_create_gear_inventory_list(db: Session) -> PackingList:
         return inventory
 
     inventory = PackingList(
-        title=_GEAR_INVENTORY_TITLE,
-        description=_GEAR_INVENTORY_DESCRIPTION,
+        title=GEAR_INVENTORY_TITLE,
+        description=GEAR_INVENTORY_DESCRIPTION,
         share_token=generate_share_token(),
         is_shared=False,
     )
@@ -187,18 +205,11 @@ def get_list_detail(list_id: str, db: Session = Depends(get_db)):
 def create_item(list_id: str, payload: CreateItemIn, db: Session = Depends(get_db)):
     packing_list = _get_list_or_404(db, list_id)
 
-    max_order = max([item.sort_order for item in packing_list.items], default=-1)
-    item = GearItem(
+    item = _create_item_entity(
         list_id=packing_list.id,
-        name="",
-        category=payload.category,
-        weight_grams=payload.weight_grams,
-        quantity=payload.quantity,
-        kind=payload.kind,
-        notes="",
-        sort_order=max_order + 1,
+        payload=payload,
+        sort_order=_next_sort_order(db, packing_list.id),
     )
-    _apply_item_payload(item, payload)
     db.add(item)
     _commit_and_refresh_list(db, packing_list)
 
@@ -208,23 +219,11 @@ def create_item(list_id: str, payload: CreateItemIn, db: Session = Depends(get_d
 @router.post("/gear-items")
 def create_gear_item(payload: CreateItemIn, db: Session = Depends(get_db)):
     inventory_list = _get_or_create_gear_inventory_list(db)
-    max_order = db.execute(
-        select(GearItem.sort_order)
-        .where(GearItem.list_id == inventory_list.id)
-        .order_by(GearItem.sort_order.desc())
-    ).scalars().first()
-
-    item = GearItem(
+    item = _create_item_entity(
         list_id=inventory_list.id,
-        name="",
-        category=payload.category,
-        weight_grams=payload.weight_grams,
-        quantity=payload.quantity,
-        kind=payload.kind,
-        notes="",
-        sort_order=(max_order if max_order is not None else -1) + 1,
+        payload=payload,
+        sort_order=_next_sort_order(db, inventory_list.id),
     )
-    _apply_item_payload(item, payload)
     db.add(item)
     db.commit()
     db.refresh(item)

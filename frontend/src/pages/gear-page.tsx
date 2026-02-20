@@ -33,9 +33,8 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { categoryOptions, itemKindOptions } from '@/lib/constants'
-import { ApiError } from '@/lib/api'
 import { categoryLabel, kindLabel } from '@/lib/format'
-import { api } from '@/lib/api'
+import { api, apiErrorMessage } from '@/lib/api'
 import type { GearListItem, ItemKind } from '@/lib/types'
 
 type ItemDraft = {
@@ -83,9 +82,6 @@ const hasChanges = (item: GearListItem, draft: ItemDraft) => {
   )
 }
 
-const mutationErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof ApiError ? error.message : fallback
-
 export function GearPage() {
   const queryClient = useQueryClient()
   const [isCreating, setIsCreating] = useState(false)
@@ -131,7 +127,7 @@ export function GearPage() {
       toast.success('ギアを追加しました')
     },
     onError: (error) => {
-      const message = mutationErrorMessage(error, 'ギアの追加に失敗しました')
+      const message = apiErrorMessage(error, 'ギアの追加に失敗しました')
       setNewRowError(message)
       toast.error(message)
     },
@@ -148,7 +144,7 @@ export function GearPage() {
       toast.success('ギアを更新しました')
     },
     onError: (error) => {
-      const message = mutationErrorMessage(error, 'ギアの更新に失敗しました')
+      const message = apiErrorMessage(error, 'ギアの更新に失敗しました')
       setEditingRowError(message)
       toast.error(message)
     },
@@ -161,7 +157,7 @@ export function GearPage() {
       setItemToDelete(null)
       toast.success('ギアを削除しました')
     },
-    onError: (error) => toast.error(mutationErrorMessage(error, 'ギアの削除に失敗しました')),
+    onError: (error) => toast.error(apiErrorMessage(error, 'ギアの削除に失敗しました')),
   })
 
   const isBusy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
