@@ -10,7 +10,6 @@ import { GearSidebar } from '@/components/gear-sidebar'
 import { ItemFormFields, type ItemFormValue } from '@/components/item-form-fields'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -208,7 +207,7 @@ export function ListDetailPage() {
       <div className="flex gap-6">
         {/* Gear Sidebar */}
         <aside className="hidden w-72 shrink-0 lg:block">
-          <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-hidden rounded-lg border bg-card">
+          <div className="sticky top-4 max-h-[calc(100vh-2rem)]">
             <GearSidebar unit={list.unit} currentListId={list.id} />
           </div>
         </aside>
@@ -259,10 +258,10 @@ export function ListDetailPage() {
             </section>
 
             <DroppableItemList>
-              <Card>
-                <CardHeader>
+              <section className="space-y-4">
+                <div className="space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <CardTitle>アイテム一覧</CardTitle>
+                    <h2 className="text-base font-semibold">アイテム一覧</h2>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-muted-foreground">表示単位</span>
                       <div className="w-[110px]">
@@ -286,116 +285,102 @@ export function ListDetailPage() {
                   <p className="text-xs text-muted-foreground">
                     左のギアパネルからドラッグ＆ドロップでアイテムを追加できます
                   </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4">
-                    {categorizedItems.map((category) => (
-                      <section key={category.value} className="overflow-hidden border">
-                        <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
-                          <span className="text-sm font-medium">{category.label}</span>
-                          <Badge variant="outline">{category.items.length}件</Badge>
-                        </div>
-                        <Table>
-                          <TableHeader>
+                </div>
+                <div className="grid gap-4">
+                  {categorizedItems.map((category) => (
+                    <section key={category.value} className="overflow-hidden border">
+                      <div className="flex items-center justify-between border-b bg-muted/30 px-3 py-2">
+                        <span className="text-sm font-medium">{category.label}</span>
+                        <Badge variant="outline">{category.items.length}件</Badge>
+                      </div>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>名前</TableHead>
+                            <TableHead>種別</TableHead>
+                            <TableHead>重量</TableHead>
+                            <TableHead>個数</TableHead>
+                            <TableHead className="w-[90px]">操作</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {category.items.length === 0 ? (
                             <TableRow>
-                              <TableHead>名前</TableHead>
-                              <TableHead>種別</TableHead>
-                              <TableHead>重量</TableHead>
-                              <TableHead>個数</TableHead>
-                              <TableHead className="w-[90px]">操作</TableHead>
+                              <TableCell className="text-muted-foreground" colSpan={5}>
+                                このカテゴリにはまだアイテムがありません
+                              </TableCell>
                             </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {category.items.length === 0 ? (
-                              <TableRow>
-                                <TableCell className="text-muted-foreground" colSpan={5}>
-                                  このカテゴリにはまだアイテムがありません
+                          ) : (
+                            category.items.map((item) => (
+                              <TableRow key={item.id}>
+                                <TableCell className="font-medium">{item.name}</TableCell>
+                                <TableCell>
+                                  <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
+                                </TableCell>
+                                <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
+                                <TableCell>{item.quantity}</TableCell>
+                                <TableCell>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon-sm">
+                                        <EllipsisVerticalIcon className="size-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                                        <PencilIcon className="mr-2 size-4" />
+                                        編集
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-destructive"
+                                        onClick={() => void deleteItemMutation.mutateAsync(item.id)}
+                                      >
+                                        <TrashIcon className="mr-2 size-4" />
+                                        削除
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
                                 </TableCell>
                               </TableRow>
-                            ) : (
-                              category.items.map((item) => (
-                                <TableRow key={item.id}>
-                                  <TableCell className="font-medium">{item.name}</TableCell>
-                                  <TableCell>
-                                    <Badge variant="secondary">{kindLabel(item.kind)}</Badge>
-                                  </TableCell>
-                                  <TableCell>{formatWeight(item.weight_grams * item.quantity, list.unit)}</TableCell>
-                                  <TableCell>{item.quantity}</TableCell>
-                                  <TableCell>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon-sm">
-                                          <EllipsisVerticalIcon className="size-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => setEditingItem(item)}>
-                                          <PencilIcon className="mr-2 size-4" />
-                                          編集
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem
-                                          className="text-destructive"
-                                          onClick={() => void deleteItemMutation.mutateAsync(item.id)}
-                                        >
-                                          <TrashIcon className="mr-2 size-4" />
-                                          削除
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                              ))
-                            )}
-                          </TableBody>
-                        </Table>
-                      </section>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    </section>
+                  ))}
+                </div>
+              </section>
             </DroppableItemList>
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {summaryCards.map((card) => (
-                <Card key={card.title}>
-                  <CardHeader>
-                    <CardTitle className="text-sm">{card.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-xl font-semibold">
-                    {formatWeight(card.weight, list.unit)}
-                  </CardContent>
-                </Card>
+                <section key={card.title}>
+                  <h2 className="text-sm font-medium text-muted-foreground">{card.title}</h2>
+                  <p className="text-xl font-semibold">{formatWeight(card.weight, list.unit)}</p>
+                </section>
               ))}
             </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>重量内訳グラフ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={chartConfig} className="mx-auto max-h-64">
-                  <PieChart>
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Pie data={kindChartData} dataKey="weight" nameKey="kind" innerRadius={45} strokeWidth={2} />
-                  </PieChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+            <section className="space-y-3">
+              <h2 className="text-base font-semibold">重量内訳グラフ</h2>
+              <ChartContainer config={chartConfig} className="mx-auto max-h-64">
+                <PieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie data={kindChartData} dataKey="weight" nameKey="kind" innerRadius={45} strokeWidth={2} />
+                </PieChart>
+              </ChartContainer>
+            </section>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>アイテム追加</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ItemFormFields
-                  submitLabel="アイテム追加"
-                  isSubmitting={createItemMutation.isPending}
-                  onSubmit={async (values) => {
-                    await createItemMutation.mutateAsync(values)
-                  }}
-                />
-              </CardContent>
-            </Card>
+            <section className="space-y-3">
+              <h2 className="text-base font-semibold">アイテム追加</h2>
+              <ItemFormFields
+                submitLabel="アイテム追加"
+                isSubmitting={createItemMutation.isPending}
+                onSubmit={async (values) => {
+                  await createItemMutation.mutateAsync(values)
+                }}
+              />
+            </section>
           </div>
         </div>
       </div>
