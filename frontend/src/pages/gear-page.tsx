@@ -199,8 +199,8 @@ export function GearPage() {
                 <TableHead>名前</TableHead>
                 <TableHead>カテゴリ</TableHead>
                 <TableHead>種別</TableHead>
-                <TableHead>重量</TableHead>
-                <TableHead>個数</TableHead>
+                <TableHead className="w-[120px]">重量</TableHead>
+                <TableHead className="w-[88px]">個数</TableHead>
                 <TableHead>メモ</TableHead>
                 <TableHead className="w-[160px]">
                   <span className="sr-only">削除</span>
