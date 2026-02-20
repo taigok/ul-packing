@@ -41,33 +41,11 @@ export function ListsPage() {
       toast.error(message)
     },
   })
-  const hasLists = Boolean(listQuery.data && listQuery.data.length > 0)
-
   return (
     <div className="grid">
+      <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
       <div className="mb-4 flex flex-row items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">パッキングリスト</h1>
-        <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
-          {hasLists ? (
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm">+ 新規</Button>
-            </DialogTrigger>
-          ) : null}
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>パッキングリストを作成</DialogTitle>
-              <DialogDescription>
-                山行ごとのパッキングリストを作成します。
-              </DialogDescription>
-            </DialogHeader>
-            <ListCreateForm
-              isSubmitting={createListMutation.isPending}
-              onSubmit={async (values) => {
-                await createListMutation.mutateAsync(values)
-              }}
-            />
-          </DialogContent>
-        </Dialog>
       </div>
       <div>
         {listQuery.isLoading ? <p>読み込み中...</p> : null}
@@ -91,6 +69,13 @@ export function ListsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              <TableRow>
+                <TableCell colSpan={2}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-full">+ 新規</Button>
+                  </DialogTrigger>
+                </TableCell>
+              </TableRow>
               {listQuery.data.map((list) => (
                 <TableRow
                   key={list.id}
@@ -111,6 +96,21 @@ export function ListsPage() {
           </Table>
         ) : null}
       </div>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>パッキングリストを作成</DialogTitle>
+          <DialogDescription>
+            山行ごとのパッキングリストを作成します。
+          </DialogDescription>
+        </DialogHeader>
+        <ListCreateForm
+          isSubmitting={createListMutation.isPending}
+          onSubmit={async (values) => {
+            await createListMutation.mutateAsync(values)
+          }}
+        />
+      </DialogContent>
+      </Dialog>
     </div>
   )
 }
