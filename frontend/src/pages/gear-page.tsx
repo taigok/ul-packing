@@ -166,7 +166,6 @@ export function GearPage() {
   })
 
   const isBusy = createMutation.isPending || updateMutation.isPending || deleteMutation.isPending
-  const canStartCreate = !isCreating && !editingItemId
 
   useEffect(() => {
     if (!editingItemId) return
@@ -184,20 +183,17 @@ export function GearPage() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
+      <CardHeader>
         <CardTitle>マイギア</CardTitle>
-        <Button size="sm" onClick={() => setIsCreating(true)} disabled={!canStartCreate}>
-          + 新規
-        </Button>
       </CardHeader>
       <CardContent>
         {gearItemsQuery.isLoading ? <p>読み込み中...</p> : null}
         {gearItemsQuery.isError ? (
           <p className="text-destructive">ギア一覧の読み込みに失敗しました。</p>
         ) : null}
-        {gearItemsQuery.data?.length === 0 && !isCreating ? <p>まだギアがありません。</p> : null}
-        {(isCreating || (gearItemsQuery.data && gearItemsQuery.data.length > 0)) ? (
-          <Table>
+        {gearItemsQuery.data?.length === 0 ? <p>まだギアがありません。</p> : null}
+        {gearItemsQuery.data ? (
+          <Table className="table-fixed">
             <TableHeader>
               <TableRow>
                 <TableHead>名前</TableHead>
@@ -226,7 +222,7 @@ export function GearPage() {
                       value={newDraft.category}
                       onValueChange={(value) => setNewDraft((prev) => ({ ...prev, category: value }))}
                     >
-                      <SelectTrigger aria-label="新規カテゴリ">
+                      <SelectTrigger aria-label="新規カテゴリ" className="w-full min-w-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -243,7 +239,7 @@ export function GearPage() {
                       value={newDraft.kind}
                       onValueChange={(value) => setNewDraft((prev) => ({ ...prev, kind: value as ItemKind }))}
                     >
-                      <SelectTrigger aria-label="新規種別">
+                      <SelectTrigger aria-label="新規種別" className="w-full min-w-0">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -280,6 +276,8 @@ export function GearPage() {
                   <TableCell>
                     <Textarea
                       aria-label="新規メモ"
+                      className="min-h-9 h-9 w-full resize-none field-sizing-fixed"
+                      rows={1}
                       value={newDraft.notes}
                       onChange={(event) => setNewDraft((prev) => ({ ...prev, notes: event.target.value }))}
                     />
@@ -321,7 +319,32 @@ export function GearPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ) : null}
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      disabled={Boolean(editingItemId) || isBusy}
+                      onClick={() => {
+                        setNewRowError(null)
+                        setNewDraft({
+                          name: '',
+                          category: 'other',
+                          weight_grams: 1,
+                          quantity: 1,
+                          kind: 'base',
+                          notes: '',
+                        })
+                        setIsCreating(true)
+                      }}
+                    >
+                      + 新規
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
               {newRowError ? (
                 <TableRow>
                   <TableCell colSpan={7}>
@@ -378,7 +401,7 @@ export function GearPage() {
                             setEditingDraft((prev) => (prev ? { ...prev, category: value } : prev))
                           }
                         >
-                          <SelectTrigger aria-label="編集カテゴリ" ref={categoryTriggerRef}>
+                          <SelectTrigger aria-label="編集カテゴリ" className="w-full min-w-0" ref={categoryTriggerRef}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -397,7 +420,7 @@ export function GearPage() {
                             setEditingDraft((prev) => (prev ? { ...prev, kind: value as ItemKind } : prev))
                           }
                         >
-                          <SelectTrigger aria-label="編集種別" ref={kindTriggerRef}>
+                          <SelectTrigger aria-label="編集種別" className="w-full min-w-0" ref={kindTriggerRef}>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -441,6 +464,8 @@ export function GearPage() {
                         <Textarea
                           aria-label="編集メモ"
                           autoFocus={editingField === 'notes'}
+                          className="min-h-9 h-9 w-full resize-none field-sizing-fixed"
+                          rows={1}
                           value={editingDraft.notes}
                           onChange={(event) =>
                             setEditingDraft((prev) => (prev ? { ...prev, notes: event.target.value } : prev))

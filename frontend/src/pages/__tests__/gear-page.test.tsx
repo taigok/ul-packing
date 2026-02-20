@@ -136,14 +136,14 @@ describe('GearPage', () => {
     expect(screen.queryByRole('link', { name: 'リストを開く' })).not.toBeInTheDocument()
   })
 
-  it('can add new gear row by + 新規', async () => {
+  it('can add new gear row via table add button', async () => {
     const user = userEvent.setup()
     mockedGetGearItems.mockResolvedValue([])
 
     renderPage()
 
     await screen.findByText('まだギアがありません。')
-    await user.click(await screen.findByRole('button', { name: '+ 新規' }))
+    await user.click(screen.getByRole('button', { name: '+ 新規' }))
     await user.type(screen.getByLabelText('新規名前'), 'Spoon')
     await user.click(screen.getByRole('button', { name: '追加' }))
 
