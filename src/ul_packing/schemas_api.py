@@ -61,6 +61,7 @@ class PackingListListItemOut(BaseModel):
     unit: Unit
     share_token: str
     is_shared: bool
+    is_template: bool
     created_at: datetime
     updated_at: datetime
 
@@ -86,10 +87,13 @@ class DataResponse(BaseModel):
 class CreateListIn(BaseModel):
     title: str = Field(min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
+    template_list_id: str | None = None
+    is_template: bool = False
 
 
-class UpdateListIn(CreateListIn):
-    pass
+class UpdateListIn(BaseModel):
+    title: str = Field(min_length=1, max_length=100)
+    description: str = Field(default="", max_length=500)
 
 
 class CreateItemIn(BaseModel):

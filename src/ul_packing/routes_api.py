@@ -123,6 +123,28 @@ def _create_item_entity(list_id: str, payload: CreateItemIn, sort_order: int) ->
     return item
 
 
+def _clone_items_from_template(db: Session, source_list_id: str, destination_list_id: str) -> None:
+    template_items = db.execute(
+        select(GearItem)
+        .where(GearItem.list_id == source_list_id)
+        .order_by(GearItem.sort_order.asc(), GearItem.id.asc())
+    ).scalars().all()
+
+    for index, template_item in enumerate(template_items):
+        db.add(
+            GearItem(
+                list_id=destination_list_id,
+                name=template_item.name,
+                category=template_item.category,
+                weight_grams=template_item.weight_grams,
+                quantity=template_item.quantity,
+                kind=template_item.kind,
+                notes=template_item.notes,
+                sort_order=index,
+            )
+        )
+
+
 def _get_or_create_gear_inventory_list(db: Session) -> PackingList:
     inventory = db.execute(
         select(PackingList)
@@ -153,6 +175,16 @@ def get_lists(db: Session = Depends(get_db)):
     return {"data": [_to_list_data(packing_list, include_items=False) for packing_list in lists]}
 
 
+@router.get("/lists/templates")
+def get_templates(db: Session = Depends(get_db)):
+    templates = db.execute(
+        select(PackingList)
+        .where(PackingList.is_template.is_(True))
+        .order_by(PackingList.created_at.desc())
+    ).scalars().all()
+    return {"data": [_to_list_data(packing_list, include_items=False) for packing_list in templates]}
+
+
 @router.get("/gear-items")
 def get_gear_items(db: Session = Depends(get_db)):
     rows = db.execute(
@@ -171,12 +203,22 @@ def create_list(payload: CreateListIn, db: Session = Depends(get_db)):
     if not title:
         return _api_error(422, "validation_error", "Title is required")
 
+    template_list: PackingList | None = None
+    if payload.template_list_id:
+        template_list = _get_list_or_404(db, payload.template_list_id)
+
     packing_list = PackingList(
         title=title,
         description=payload.description.strip(),
         share_token=generate_share_token(),
+        is_template=payload.is_template,
     )
     db.add(packing_list)
+    db.flush()
+
+    if template_list:
+        _clone_items_from_template(db, source_list_id=template_list.id, destination_list_id=packing_list.id)
+
     db.commit()
     db.refresh(packing_list)
     return {"data": _to_list_data(packing_list, include_items=False)}

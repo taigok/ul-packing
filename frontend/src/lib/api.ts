@@ -62,6 +62,8 @@ const listPath = (listId: string, suffix = '') => `/api/v1/lists/${listId}${suff
 export type ListPayload = {
   title: string
   description: string
+  template_list_id?: string
+  is_template?: boolean
 }
 
 export type ItemPayload = {
@@ -75,6 +77,7 @@ export type ItemPayload = {
 
 export const api = {
   getLists: () => request<PackingList[]>('/api/v1/lists'),
+  getTemplates: () => request<PackingList[]>('/api/v1/lists/templates'),
   getGearItems: () => request<GearListItem[]>('/api/v1/gear-items'),
   createGearItem: (payload: ItemPayload) => requestWithBody<GearListItem>('/api/v1/gear-items', 'POST', payload),
   createList: (payload: ListPayload) => requestWithBody<PackingList>('/api/v1/lists', 'POST', payload),
