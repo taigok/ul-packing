@@ -29,6 +29,7 @@ export function ListsPage() {
   const [isCreateListOpen, setIsCreateListOpen] = useState(false)
 
   const listQuery = useQuery({ queryKey: ['lists'], queryFn: api.getLists })
+  const templateQuery = useQuery({ queryKey: ['list-templates'], queryFn: api.getTemplates })
   const createListMutation = useMutation({
     mutationFn: api.createList,
     onSuccess: async (list) => {
@@ -38,6 +39,8 @@ export function ListsPage() {
     },
     onError: (error) => toast.error(apiErrorMessage(error, 'リストの作成に失敗しました')),
   })
+  const packingLists = listQuery.data?.filter((list) => !list.is_template)
+
   return (
     <div className="grid">
       <Dialog open={isCreateListOpen} onOpenChange={setIsCreateListOpen}>
@@ -47,7 +50,7 @@ export function ListsPage() {
       <div>
         {listQuery.isLoading ? <p>読み込み中...</p> : null}
         {listQuery.isError ? <p className="text-destructive">リストの読み込みに失敗しました。</p> : null}
-        {listQuery.data?.length === 0 ? (
+        {packingLists?.length === 0 ? (
           <div className="grid justify-items-center gap-3 py-6 text-center">
             <p className="text-sm text-muted-foreground">
               まだパッキングリストがありません。最初のリストを作成しましょう。
@@ -57,7 +60,7 @@ export function ListsPage() {
             </Button>
           </div>
         ) : null}
-        {listQuery.data && listQuery.data.length > 0 ? (
+        {packingLists && packingLists.length > 0 ? (
           <Table className="[&_td]:py-3">
             <TableHeader>
               <TableRow>
@@ -73,7 +76,7 @@ export function ListsPage() {
                   </DialogTrigger>
                 </TableCell>
               </TableRow>
-              {listQuery.data.map((list) => (
+              {packingLists.map((list) => (
                 <TableRow
                   key={list.id}
                   tabIndex={0}
@@ -102,6 +105,7 @@ export function ListsPage() {
         </DialogHeader>
         <ListCreateForm
           isSubmitting={createListMutation.isPending}
+          templateOptions={templateQuery.data ?? []}
           onSubmit={async (values) => {
             await createListMutation.mutateAsync(values)
           }}
