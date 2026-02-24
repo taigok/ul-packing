@@ -42,6 +42,7 @@ class PackingList(Base):
     unit: Mapped[Unit] = mapped_column(Enum(Unit), default=Unit.G, nullable=False)
     share_token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     is_shared: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_template: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

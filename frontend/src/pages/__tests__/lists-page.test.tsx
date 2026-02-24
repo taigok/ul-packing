@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 
-import { ListsPage } from '@/pages/lists-page'
 import { api } from '@/lib/api'
+import { ListsPage } from '@/pages/lists-page'
 
 vi.mock('@/lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/api')>()
@@ -14,12 +14,14 @@ vi.mock('@/lib/api', async (importOriginal) => {
       ...actual.api,
       getLists: vi.fn(),
       createList: vi.fn(),
+      getTemplates: vi.fn(),
     },
   }
 })
 
 const mockedGetLists = vi.mocked(api.getLists)
 const mockedCreateList = vi.mocked(api.createList)
+const mockedGetTemplates = vi.mocked(api.getTemplates)
 
 const renderPage = () => {
   const queryClient = new QueryClient({
@@ -48,9 +50,11 @@ describe('ListsPage', () => {
       unit: 'g',
       share_token: '',
       is_shared: false,
+      is_template: false,
       created_at: '',
       updated_at: '',
     })
+    mockedGetTemplates.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -66,6 +70,7 @@ describe('ListsPage', () => {
         unit: 'g',
         share_token: '',
         is_shared: false,
+        is_template: false,
         created_at: '',
         updated_at: '',
       },
