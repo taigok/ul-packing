@@ -66,6 +66,12 @@ export type ListPayload = {
   is_template?: boolean
 }
 
+export type UpdateListPayload = {
+  title: string
+  description: string
+  is_template?: boolean
+}
+
 export type ItemPayload = {
   name: string
   category: string
@@ -81,7 +87,7 @@ export const api = {
   getGearItems: () => request<GearListItem[]>('/api/v1/gear-items'),
   createGearItem: (payload: ItemPayload) => requestWithBody<GearListItem>('/api/v1/gear-items', 'POST', payload),
   createList: (payload: ListPayload) => requestWithBody<PackingList>('/api/v1/lists', 'POST', payload),
-  updateList: (listId: string, payload: ListPayload) => requestWithBody<PackingList>(listPath(listId), 'PATCH', payload),
+  updateList: (listId: string, payload: UpdateListPayload) => requestWithBody<PackingList>(listPath(listId), 'PATCH', payload),
   getList: (listId: string) => request<PackingListDetail>(listPath(listId)),
   createItem: (listId: string, payload: ItemPayload) => requestWithBody<PackingListDetail>(listPath(listId, '/items'), 'POST', payload),
   updateItem: (listId: string, itemId: string, payload: ItemPayload) =>

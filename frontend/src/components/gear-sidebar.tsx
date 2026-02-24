@@ -30,6 +30,7 @@ function DraggableGearItem({ item, unit }: { item: GearListItem; unit: Unit }) {
       <button
         type="button"
         className="shrink-0 cursor-grab touch-none text-muted-foreground hover:text-foreground"
+        aria-label={`${item.name}をドラッグ`}
         {...listeners}
         {...attributes}
       >
@@ -88,6 +89,7 @@ export function GearSidebar({ unit, currentListId }: GearSidebarProps) {
       <div className="p-3">
         <Input
           placeholder="ギアを検索..."
+          aria-label="ギアを検索"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 text-sm"

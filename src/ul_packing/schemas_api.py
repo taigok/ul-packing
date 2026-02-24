@@ -94,6 +94,7 @@ class CreateListIn(BaseModel):
 class UpdateListIn(BaseModel):
     title: str = Field(min_length=1, max_length=100)
     description: str = Field(default="", max_length=500)
+    is_template: bool | None = None
 
 
 class CreateItemIn(BaseModel):

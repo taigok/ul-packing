@@ -151,6 +151,24 @@ export function ListDetailPage() {
     },
     onError: (error) => toast.error(apiErrorMessage(error, '共有トークンの再生成に失敗しました')),
   })
+  const toggleTemplateMutation = useMutation({
+    mutationFn: (isTemplate: boolean) => {
+      const current = listQuery.data
+      if (!current) throw new Error('List not loaded')
+      return api.updateList(current.id, {
+        title: current.title,
+        description: current.description,
+        is_template: isTemplate,
+      })
+    },
+    onSuccess: async () => {
+      await invalidateListQuery()
+      await queryClient.invalidateQueries({ queryKey: ['lists'] })
+      await queryClient.invalidateQueries({ queryKey: ['list-templates'] })
+      toast.success('テンプレート設定を更新しました')
+    },
+    onError: (error) => toast.error(apiErrorMessage(error, 'テンプレート設定の更新に失敗しました')),
+  })
 
   const handleDragStart = (event: DragStartEvent) => {
     const gearItem = event.active.data.current?.gearItem as GearListItem | undefined
@@ -218,7 +236,10 @@ export function ListDetailPage() {
             <section className="grid gap-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <h1 className="text-2xl font-semibold tracking-tight">{list.title}</h1>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-semibold tracking-tight">{list.title}</h1>
+                    {list.is_template ? <Badge variant="secondary">テンプレート</Badge> : null}
+                  </div>
                   <p className="text-sm text-muted-foreground">{list.description || '説明なし'}</p>
                 </div>
                 <DropdownMenu>
@@ -228,6 +249,11 @@ export function ListDetailPage() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onSelect={() => void toggleTemplateMutation.mutateAsync(!list.is_template)}
+                    >
+                      {list.is_template ? 'テンプレート解除' : 'テンプレートに設定'}
+                    </DropdownMenuItem>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem
@@ -271,7 +297,7 @@ export function ListDetailPage() {
                             void setUnitMutation.mutateAsync(value as Unit)
                           }}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger aria-label="表示単位">
                             <SelectValue placeholder="単位" />
                           </SelectTrigger>
                           <SelectContent>
@@ -322,7 +348,7 @@ export function ListDetailPage() {
                                 <TableCell>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="icon-sm">
+                                      <Button variant="ghost" size="icon-sm" aria-label={`${item.name}の操作メニュー`}>
                                         <EllipsisVerticalIcon className="size-4" />
                                       </Button>
                                     </DropdownMenuTrigger>
@@ -354,7 +380,7 @@ export function ListDetailPage() {
 
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {summaryCards.map((card) => (
-                <section key={card.title}>
+                <section key={card.title} aria-label={`${card.title}: ${formatWeight(card.weight, list.unit)}`}>
                   <h2 className="text-sm font-medium text-muted-foreground">{card.title}</h2>
                   <p className="text-xl font-semibold">{formatWeight(card.weight, list.unit)}</p>
                 </section>

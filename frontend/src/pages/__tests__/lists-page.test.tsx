@@ -79,7 +79,7 @@ describe('ListsPage', () => {
     renderPage()
 
     expect(await screen.findByText('Yari 2D')).toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: '操作' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '操作' })).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: 'リスト' })).not.toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: '+ 新規' })).toHaveLength(1)
     expect(screen.queryByText('マイギア')).not.toBeInTheDocument()

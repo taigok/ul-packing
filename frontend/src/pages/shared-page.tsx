@@ -38,25 +38,25 @@ export function SharedPage() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
+        <Card aria-label={`ベース: ${formatWeight(list.summary.base_weight_g, list.unit)}`}>
           <CardHeader>
             <CardTitle className="text-sm">ベース</CardTitle>
           </CardHeader>
           <CardContent>{formatWeight(list.summary.base_weight_g, list.unit)}</CardContent>
         </Card>
-        <Card>
+        <Card aria-label={`消耗品: ${formatWeight(list.summary.consumable_weight_g, list.unit)}`}>
           <CardHeader>
             <CardTitle className="text-sm">消耗品</CardTitle>
           </CardHeader>
           <CardContent>{formatWeight(list.summary.consumable_weight_g, list.unit)}</CardContent>
         </Card>
-        <Card>
+        <Card aria-label={`着用: ${formatWeight(list.summary.worn_weight_g, list.unit)}`}>
           <CardHeader>
             <CardTitle className="text-sm">着用</CardTitle>
           </CardHeader>
           <CardContent>{formatWeight(list.summary.worn_weight_g, list.unit)}</CardContent>
         </Card>
-        <Card>
+        <Card aria-label={`合計: ${formatWeight(list.summary.total_pack_g, list.unit)}`}>
           <CardHeader>
             <CardTitle className="text-sm">合計</CardTitle>
           </CardHeader>

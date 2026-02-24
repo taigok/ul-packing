@@ -233,6 +233,8 @@ def update_list(list_id: str, payload: UpdateListIn, db: Session = Depends(get_d
     packing_list = _get_list_or_404(db, list_id)
     packing_list.title = title
     packing_list.description = payload.description.strip()
+    if payload.is_template is not None:
+        packing_list.is_template = payload.is_template
     _commit_and_refresh_list(db, packing_list)
     return {"data": _to_list_data(packing_list, include_items=False)}
 
