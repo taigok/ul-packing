@@ -12,3 +12,4 @@ fi
 uv sync --all-groups
 npm ci
 npx playwright install --with-deps chromium
+curl -fsSL https://claude.ai/install.sh | bash

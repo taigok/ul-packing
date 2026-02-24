@@ -23,7 +23,8 @@
         "ms-python.python",
         "ms-python.vscode-pylance",
         "ms-playwright.playwright",
-        "openai.chatgpt"
+        "openai.chatgpt",
+        "Anthropic.claude-code"
       ]
     }
   },
